@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #define STDIN 0
 #define STDOUT 1
@@ -11,6 +13,7 @@ struct Process
 {
 	char* processName;
 	long size;
+	long startIndex, endIndex;
 };
 typedef struct Proccess Process;
 
@@ -29,10 +32,13 @@ Process* nextFit();
 int main(int argc, char** argv)
 {
 	// Variables
+	int fd;
+
 	char* inCommand, scriptFilename;
 	unsigned long int totalMemory;
 
 	Process* memory;
+	int memCount = 0;
 
 	// Check command-line arguments
 	if(argc != 4)
@@ -52,29 +58,58 @@ int main(int argc, char** argv)
 	dprintf(STDERR, "Script filename: %s\n", scriptFilename);
 
 	// Allocate size to the array
-	memory = (Process*)malloc(totalMemory * sizeof(Process));
+	memory = (Process*)malloc( * sizeof(Process));
 	
-	// Check to see what command was issued
-	if(strcmp(inCommand, "BESTFIT") == 0)
-	{
+	// Create the file descriptor of the file we are using
+	fd = open(scriptFilename, O_RDONLY, 0);
 
-	}
-	else if(strcmp(inCommand, "FIRSTFIT") == 0)
-	{
+	
+	char* line;
+	char* command;
+	char* processName;
+	long memAmount;
 
-	}
-	else if(strcmp(inCommand, "NEXTFIT") == 0)
+	char** data;
+	int arrLength;
+	
+	while((line = readline(fd)) != NULL)
 	{
+		// Parse the line
+		data = split(line, ' ');
+	
+		// Format should be Command, Process Name, and Amount of Memory if there are 3 elements
+		arrLength = sizeof(data) / sizeof(data[0]);
 
-	}
-	else if(strcmp(inCommand, "WORSTFIT") == 0)
-	{
+		command = data[0];
+		processName = data[1];
 
-	}
-	else
-	{
-		// Error
-		exit(EXIT_FAILURE);
+		if(arrLength == 3)
+			memAmount = atoi(data[2]);
+
+		// Check what command was issued
+		if(strcmp(command, "REQUEST") == 0)
+		{
+			// Allocates memory for a process
+			
+		}
+		else if(strcmp(command, "RELEASE") == 0)
+		{
+
+		}
+		else if(strcmp(command, "LIST") == 0)
+		{
+
+		}
+		else if(strcmp(command, "FIND") == 0)
+		{
+
+		}
+		else
+		{
+			// Error - Illegal command
+			dprintf(STDERR, "Illegal command in script file\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	exit(EXIT_SUCCESS);
