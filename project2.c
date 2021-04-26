@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -23,6 +24,7 @@ char* readline(int fd);
 char** split(char* str, char split);
 
 void insertInArray(Process addProc, Process* array, int index);
+void removeFromArray(Process* array, int index);
 
 void firstFit(Process newProc, Process* procList);
 void bestFit(Process newProc, Process* procList);
@@ -60,7 +62,8 @@ int main(int argc, char** argv)
 	dprintf(STDERR, "Script filename: %s\n", scriptFilename);
 
 	// Allocate size to the array
-	memory = (Process*)malloc(64 * sizeof(Process));
+	// NOTE: Array will be increased as more processes are added so it can just start with 1 element
+	memory = (Process*)malloc(1 * sizeof(Process));
 	
 	// Create the file descriptor of the file we are using
 	fd = open(scriptFilename, O_RDONLY, 0);
@@ -76,10 +79,11 @@ int main(int argc, char** argv)
 	
 	while((line = readline(fd)) != NULL)
 	{
-		// Parse the line
+		// Parse the line by splitting into an array of strings
 		data = split(line, ' ');
 	
 		// Format should be Command, Process Name, and Amount of Memory if there are 3 elements
+		// Might just have 2 
 		arrLength = sizeof(data) / sizeof(data[0]);
 
 		command = data[0];
@@ -89,18 +93,14 @@ int main(int argc, char** argv)
 			memAmount = atoi(data[2]);
 
 		// Check what command was issued
-
-		// TODO: Need to check if it is a comment and then ignore
 		if(strcmp(command, "REQUEST") == 0)
 		{
 			// Allocates memory for a process
 			// Create a new process and initialize its data
 			Process newProcess;
+			newProcess.processName = (char*)malloc(32 * sizeof(char));
 			strcpy(newProcess.processName, processName);
 			newProcess.size = memAmount;
-			
-			// Print out information to STDOUT
-			dprintf(STDOUT, "ALLOCATED %s %d\n", newProcess.processName, newProcess.size);
 
 			// TODO: Determine where to put the process
 			// Use the provided cmd line command to determine which algorithm to use
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
 			else
 			{
 				// Error
-				dprintf(STDERR, "Illegal command provided in argv[1]\n");
+				dprintf(STDOUT, "FAIL REQUEST %s %ld\n", newProcess.processName, newProcess.size);
 				exit(EXIT_FAILURE);
 			}
 
@@ -135,9 +135,11 @@ int main(int argc, char** argv)
 			// Loop through all processes until the one with the right process name is found
 			for(int i = 0; i < procCount; i++)
 			{
-				if(strcmp(memory[i].name, processName) == 0)
+				// Remove the element from the array
+				if(strcmp(memory[i].processName, processName) == 0)
 				{
-
+					removeFromArray(memory, i);
+					dprintf(STDOUT, "FREE %s %ld %ld", memory[i].processName, memory[i].size, memory[i].startIndex);
 				}
 			}
 
@@ -149,11 +151,26 @@ int main(int argc, char** argv)
 			// Second command is stored in processName variable
 			if(strcmp(processName, "AVAILABLE") == 0)
 			{
+				// Loop through array, and find available memory spots
+				int availCount = 0;
+				for(int i = 0; i < procCount; i++)
+				{
 
+				}
+
+				if(availCount == 0)
+					dprintf(STDOUT, "FULL\n");
 			}
 			else if(strcmp(processName, "ASSIGNED") == 0)
 			{
-			
+				// Loop through array, and list the allocated blocks
+				if(procCount == 0)
+					dprintf(STDOUT, "NONE\n");
+
+				for(int i = 0; i < procCount; i++)
+				{
+
+				}
 			}
 			else
 			{
@@ -165,7 +182,10 @@ int main(int argc, char** argv)
 		else if(strcmp(command, "FIND") == 0)
 		{
 			// Locates the starting address and size allocated by the process name given
+			for(int i = 0; i < procCount; i++)
+			{
 
+			}
 		}
 		else
 		{
@@ -245,7 +265,7 @@ void insertInArray(Process addProc, Process* array, int index)
 {
 	int arrLength = sizeof(array) / sizeof(array[0]);
 
-	// TODO: Could use realloc?
+	// Create a new array to copy the elements into
 	Process* newArr = (Process*)malloc((arrLength + 1) * sizeof(Process));
 
 	// Copy the array
@@ -270,7 +290,35 @@ void insertInArray(Process addProc, Process* array, int index)
 	}
 
 	// Adjust the pointer to the provided array
+	free(array);
 	array = newArr;
+
+	return;
+}
+
+/*
+ * Removes an element from the given array
+ */
+void removeFromArray(Process* array, int index)
+{
+	int arrLength = sizeof(array) / sizeof(array[0]);
+
+	Process* newArr = (Process*)malloc((arrLength - 1) * sizeof(Process));
+
+	// Copy all array elements except for the indicated index
+	for(int i = 0; i < arrLength; i++)
+	{
+		if(i < index)
+			newArr[i] = array[i];
+		else
+			newArr[i] = array[i + 1];
+	}
+
+	// Make the provided array pointer point to the new array
+	free(array);
+	array = newArr;
+
+	return;
 }
 
 
