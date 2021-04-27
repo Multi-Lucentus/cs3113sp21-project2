@@ -13,36 +13,36 @@
 struct Process
 {
 	char* processName;
-	long size;
-	long startIndex, endIndex;
+	unsigned long size;
+	unsigned long startIndex, endIndex;
 };
-typedef struct Proccess Process;
+typedef struct Process Process;
 
 
 // Function Prototypes
-char* readline(int fd);
-char** split(char* str, char split);
-int numFileLines(int fd);
+char** split(char* string, char split);
 
 void insertInArray(Process addProc, Process* array, int index);
 void removeFromArray(Process* array, int index);
 
-void firstFit(Process newProc, Process* procList);
-void bestFit(Process newProc, Process* procList);
-void worstFit(Process newProc, Process* procList);
-void nextFit(Process newProc, Process* procList);
+int firstFit(Process newProc, Process* procList);
+int bestFit(Process newProc, Process* procList);
+int worstFit(Process newProc, Process* procList);
+int nextFit(Process newProc, Process* procList);
 
 
 // Main Function
 int main(int argc, char** argv)
 {
 	// Variables
-	char* command;
+	char* inCommand;
 	unsigned long totalMemory;
 	char* scriptName;
 
 	Process* memory;
 	int procCount = 0;
+
+	FILE* fp;
 
 	// Check command-line arguments
 	if(argc != 4)
@@ -52,159 +52,86 @@ int main(int argc, char** argv)
 	}
 
 	// Initialize variables
-	command = argv[1];
+	inCommand = argv[1];
 	totalMemory = strtoul(argv[2], NULL, 0);
 	scriptName = argv[3];
 
 	// TESTING
 	dprintf(STDERR, "Input command: %s\n", inCommand);
-	dprintf(STDERR, "Total memory: %d\n", totalMemory);
-	dprintf(STDERR, "Script filename: %s\n", scriptFilename);
+	dprintf(STDERR, "Total memory: %ld\n", totalMemory);
+	dprintf(STDERR, "Script filename: %s\n", scriptName);
 
 	// Allocate size to the array
-	// NOTE: Array will be increased as more processes are added so it can just start with 1 element
 	memory = (Process*)malloc(128 * sizeof(Process));
 	
-	// Create the file descriptor of the file we are using
-	fd = open(scriptFilename, O_RDONLY, 0);
+	// Open the file using a file pointer
+	fp = fopen(scriptName, "r");
 
-	
-	char* line;
+	char* line = (char*)malloc(64 * sizeof(char));
+	char** data;
+
 	char* command;
 	char* processName;
-	long memAmount;
-
-	char** data;
-	int arrLength;
-	
-	while((line = readline(fd)) != NULL)
+	unsigned long numBytes;
+	while(fscanf(fp, "%[^\n]", line) != EOF)
 	{
-		// Parse the line by splitting into an array of strings
+		// Use fgetc to move past \n
+		fgetc(fp);
+
+		// TESTING
+		dprintf(STDERR, "Line: %s\n", line);
+		
+		// Split the string along spaces
 		data = split(line, ' ');
-	
-		// Format should be Command, Process Name, and Amount of Memory if there are 3 elements
-		// Might just have 2 
-		arrLength = sizeof(data) / sizeof(data[0]);
 
+		int length = 0;
+		while(data[length] != NULL)
+			length++;
+
+		// Decide what action to perform based off of data[0]
+		// NOTE: If data[0] == #, then that line is a comment and we can ignore
 		command = data[0];
-		processName = data[1];
 
-		if(arrLength == 3)
-			memAmount = strtol(data[2]);
-
-		// Check what command was issued
 		if(strcmp(command, "REQUEST") == 0)
 		{
-			// Allocates memory for a process
-			// Create a new process and initialize its data
-			Process newProcess;
-			newProcess.processName = (char*)malloc(32 * sizeof(char));
-			strcpy(newProcess.processName, processName);
-			newProcess.size = memAmount;
+			// data[1] = process name, data[2] = num bytes
+			processName = data[1];
+			numBytes = strtoul(data[2], NULL, 0);
 
-			// TODO: Determine where to put the process
-			// Use the provided cmd line command to determine which algorithm to use
+			// Create a new process
+			Process newProc;
+			newProc.processName = (char*)malloc(16 * sizeof(char));
+			strcpy(newProc.processName, processName);
+			newProc.size = numBytes;
+
+			// Check what algorithm is being used from the command-line
 			if(strcmp(inCommand, "FIRSTFIT") == 0)
 			{
-				firstFit(newProcess, memory);
+				// TESTING
+				dprintf(STDERR, "REQUEST FIRSTFIT\n");
+				dprintf(STDERR, "\tNew Process: %s %lu\n", newProc.processName, newProc.size);
+				
+				if(firstFit(newProc, memory) == 0)
+					dprintf(STDOUT, "ALLOCATED %s %lu\n", newProc.processName, newProc.startIndex);
+				else
+					dprintf(STDOUT, "FAIL REQUEST %s %lu\n", newProc.processName, newProc.size);
 			}
-			else if(strcmp(inCommand, "BESTFIT") == 0)
-			{
-				bestFit(newProcess, memory);
-			}
-			else if(strcmp(inCommand, "WORSTFIT") == 0)
-			{
-				worstFit(newProcess, memory);
-			}
-			else if(strcmp(inCommand, "NEXTFIT") == 0)
-			{
-				nextFit(newProcess, memory);
-			}
-			else
-			{
-				// Error
-				dprintf(STDOUT, "FAIL REQUEST %s %ld\n", newProcess.processName, newProcess.size);
-				exit(EXIT_FAILURE);
-			}
-
-			procCount++;
 		}
 		else if(strcmp(command, "RELEASE") == 0)
 		{
-			// Releases memory held by a process
-			// Loop through all processes until the one with the right process name is found
-			for(int i = 0; i < procCount; i++)
-			{
-				// Remove the element from the array
-				if(strcmp(memory[i].processName, processName) == 0)
-				{
-					removeFromArray(memory, i);
-					dprintf(STDOUT, "FREE %s %ld %ld", memory[i].processName, memory[i].size, memory[i].startIndex);
-				}
-			}
 
-			procCount--;
 		}
 		else if(strcmp(command, "LIST") == 0)
 		{
-			// Two available commands: AVAILABLE or ASSIGNED
-			// Second command is stored in processName variable
-			if(strcmp(processName, "AVAILABLE") == 0)
-			{
-				// Loop through array, and find available memory spots
-				int availCount = 0;
-				for(int i = 0; i < procCount; i++)
-				{
 
-				}
-
-				if(availCount == 0)
-					dprintf(STDOUT, "FULL\n");
-			}
-			else if(strcmp(processName, "ASSIGNED") == 0)
-			{
-				// Loop through array, and list the allocated blocks
-				if(procCount == 0)
-					dprintf(STDOUT, "NONE\n");
-
-				for(int i = 0; i < procCount; i++)
-				{
-
-				}
-			}
-			else
-			{
-				// Error
-				dprintf(STDERR, "Illegal command after LIST command\n");
-				exit(EXIT_FAILURE);
-			}
 		}
 		else if(strcmp(command, "FIND") == 0)
 		{
-			// Locates the starting address and size allocated by the process name given
-			int isFound = 0;
-			for(int i = 0; i < procCount; i++)
-			{
-				if(strcmp(memory[i].processName, processName) == 0)
-				{
-					// Process has been found
-					dprintf(STDOUT, "(%s, %ld, %ld)\n", memory[i].processName, memory[i].size, memory[i].startIndex);
-					isFound++;
-				}
-			}
-			
-			// Check if the process couldnt be found
-			if(isFound == 0)
-				dprintf(STDOUT, "FAULT\n");
 
 		}
-		else
-		{
-			// Error - Illegal command
-			dprintf(STDERR, "Illegal command in script file\n");
-			exit(EXIT_FAILURE);
-		}
 	}
+
+	fclose(fp);
 
 	exit(EXIT_SUCCESS);
 }
@@ -212,38 +139,10 @@ int main(int argc, char** argv)
 
 // Function Declarations
 /*
- * Reads a line from the file pointed to by the file descriptor
- * Returns the line read
+ * Splits a string according to a split character and then returns an
+ * array of srings
  */
-char* readline(int fd)
-{
-	char* buffer = (char*)malloc(64 * sizeof(char));
-	int bufCount = 0;
-
-	char c;
-	while(read(fd, &c, 1) > 0)
-	{
-		// Check if the character is newline (\n)
-		if(c != '\n')
-		{
-			buffer[bufCount] = c;
-			bufCount++;
-		}
-		else
-		{
-			buffer[bufCount] = '\0';
-			break;
-		}
-	}
-
-	return buffer;
-}
-
-/*
- * Splits a string according to the split character parameter
- * Returns an array of strings
- */
-char** split(char* str, char split)
+char** split(char* string, char split)
 {
 	// Count number of occurrences of the split character
 	int splitCount = 0;
@@ -266,24 +165,6 @@ char** split(char* str, char split)
 	}
 
 	return stringArray;
-}
-
-/*
- * Counts the number of lines in a file provided by the file descriptor (fd)
- */
-int numFileLines(int fd)
-{
-	// Variables
-	int lineCount = 0;
-	char c;
-
-	while(read(fd, &c, 1) > 0)
-	{
-		if(c == '\n')
-			lineCount++;
-	}
-
-	return lineCount;
 }
 
 /*
@@ -353,8 +234,9 @@ void removeFromArray(Process* array, int index)
 /*
  * First Fit Algorithm:
  * Allocate the process to the first hole that is big enough
+ * Return 0 on success, or 1 on error
  */
-void firstFit(Process newProc, Process* procList)
+int firstFit(Process newProc, Process* procList)
 {
 	// First, get the length of the process list
 	int procCount = sizeof(procList) / sizeof(procList[0]);
@@ -362,11 +244,11 @@ void firstFit(Process newProc, Process* procList)
 	if(procCount == 0)
 	{
 		// Just need to put the process at the start of the list
-		procCount[0] = newProc;
+		procList[0] = newProc;
 		
 		// Set the indices of the new process
-		procCount[0].startIndex = 0;
-		procCount[0].endIndex = size - 1;
+		procList[0].startIndex = 0;
+		procList[0].endIndex = procList[0].size - 1;
 	}
 	else
 	{
@@ -390,13 +272,15 @@ void firstFit(Process newProc, Process* procList)
 			startSpace = procList[i].endIndex;
 		}
 	}
+
+	return 0;
 }
 
 /*
  * Best Fit Algorithm:
  * Find every memory hole and allocate to the smallest hole that is still big enough
  */
-void bestFit(Process newProc, Process* procList)
+int bestFit(Process newProc, Process* procList)
 {
 	int biggestIndex = -1;
 	
@@ -406,7 +290,7 @@ void bestFit(Process newProc, Process* procList)
  * Worst Fit Algorithm:
  * Find every memory hole and allocate to the biggest hole that is big enough
  */
-void worstFit(Process newProc, Process* procList)
+int worstFit(Process newProc, Process* procList)
 {
 
 }
@@ -415,7 +299,7 @@ void worstFit(Process newProc, Process* procList)
  * Next Fit Algorithm:
  * 
  */
-void nextFit(Process newProc, Process* procList)
+int nextFit(Process newProc, Process* procList)
 {
 
 }
