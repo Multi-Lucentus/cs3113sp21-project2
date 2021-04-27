@@ -168,11 +168,48 @@ int main(int argc, char** argv)
 		}
 		else if(strcmp(command, "LIST") == 0)
 		{
-			
+			// Get the second part of the command
+			char* command2 = data[1];
+
+			if(strcmp(command2, "ASSIGNED") == 0)
+			{
+				// Go through the list and print all assigned process memory
+				if(procCount == 0)
+					dprintf(STDOUT, "NONE\n");
+
+				for(int i = 0; i < procCount; i++)
+				{
+					dprintf(STDOUT, "(%s, %lu, %lu)", procList[i].processName, procList[i].size, procList[i].startIndex);
+					if(i == (procCount - 1))
+						dprintf(STDOUT, "\n");
+				}
+				
+
+			}
+			else if(strcmp(command2, "AVAILABLE") == 0)
+			{
+				
+			}		
 		}
 		else if(strcmp(command, "FIND") == 0)
 		{
+			// Find a process
+			processName = data[1];
+			
+			int hasFound = -1;
+			for(int i = 0; i < procCount; i++)
+			{
+				if(strcmp(processName, procList[i].processName) == 0)
+				{
+					// Print info about the process
+					dprintf(STDOUT, "(%s, %lu, %lu)\n", procList[i].processName, procList[i].size, procList[i].startIndex);
+					hasFound++;
+				}
+			}
 
+			// If the process couldn't be found, print out FAULT
+			if(hasFound == -1)
+				dprintf(STDERR, "FAULT\n");
 		}
 	}
 
