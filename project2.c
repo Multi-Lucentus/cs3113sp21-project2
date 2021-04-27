@@ -179,7 +179,7 @@ int main(int argc, char** argv)
 
 				for(int i = 0; i < procCount; i++)
 				{
-					dprintf(STDOUT, "(%s, %lu, %lu)", procList[i].processName, procList[i].size, procList[i].startIndex);
+					dprintf(STDOUT, "(%s, %lu, %lu)", memory[i].processName, memory[i].size, memory[i].startIndex);
 					if(i == (procCount - 1))
 						dprintf(STDOUT, "\n");
 				}
@@ -188,7 +188,29 @@ int main(int argc, char** argv)
 			}
 			else if(strcmp(command2, "AVAILABLE") == 0)
 			{
+				// Print out all available memory locations
+				// If there are no processes, the whole thing is available
+				if(procCount == 0)
+					dprintf(STDOUT, "(%lu, 0)\n", totalMemory);
 				
+				long startSpace = 0;
+				long endSpace;
+				for(int i = 0; i < procCount; i++)
+				{
+					endSpace = memory[i].startIndex;
+
+					if((endSpace - startSpace) > 0)
+					{
+						// Print out the available memory location
+						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace), startSpace);
+					}
+
+					startSpace = memory[i].endIndex;
+				}
+
+				// Check for memory after processes
+				if(startSpace != (totalMemory - 1))
+					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace, startSpace);
 			}		
 		}
 		else if(strcmp(command, "FIND") == 0)
