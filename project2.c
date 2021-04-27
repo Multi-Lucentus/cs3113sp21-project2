@@ -25,10 +25,10 @@ char** split(char* string, char split);
 void insertInArray(Process addProc, Process* array, int index);
 void removeFromArray(Process* array, int index);
 
-int firstFit(Process newProc, Process* procList);
-int bestFit(Process newProc, Process* procList);
-int worstFit(Process newProc, Process* procList);
-int nextFit(Process newProc, Process* procList);
+int firstFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
+int bestFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
+int worstFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
+int nextFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
 
 
 // Main Function
@@ -111,8 +111,11 @@ int main(int argc, char** argv)
 				dprintf(STDERR, "REQUEST FIRSTFIT\n");
 				dprintf(STDERR, "\tNew Process: %s %lu\n", newProc.processName, newProc.size);
 				
-				if(firstFit(newProc, memory) == 0)
+				if(firstFit(newProc, memory, procCount, totalMemory) == 0)
+				{
 					dprintf(STDOUT, "ALLOCATED %s %lu\n", newProc.processName, newProc.startIndex);
+					procCount++;
+				}
 				else
 					dprintf(STDOUT, "FAIL REQUEST %s %lu\n", newProc.processName, newProc.size);
 			}
@@ -236,19 +239,25 @@ void removeFromArray(Process* array, int index)
  * Allocate the process to the first hole that is big enough
  * Return 0 on success, or 1 on error
  */
-int firstFit(Process newProc, Process* procList)
+int firstFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
 {
-	// First, get the length of the process list
-	int procCount = sizeof(procList) / sizeof(procList[0]);
-
-	if(procCount == 0)
+	// Check if this is the first process being added or not
+	if(length == 0)
 	{
 		// Just need to put the process at the start of the list
-		procList[0] = newProc;
+		// Also need to make sure the process isn't bigger than the amount of memory
+		// TODO: Need to also get total memory
+		if(newProc.size > totalMemory)
+			return -1;
+		procList[0].processName = (char*)malloc(16 * sizeof(char));
+		strcpy(procList[0].processName, newProc.processName);
+		procList[0].size = newProc.size;
 		
 		// Set the indices of the new process
 		procList[0].startIndex = 0;
-		procList[0].endIndex = procList[0].size - 1;
+		procList[0].endIndex = procList[0].size;
+
+		return 0;
 	}
 	else
 	{
@@ -257,7 +266,8 @@ int firstFit(Process newProc, Process* procList)
 		long endSpace;
 
 		// TODO: Need to check for end of list
-		for(int i = 0; i < procCount; i++)
+		int hasFoundPlace = -1;
+		for(int i = 0; i < length; i++)
 		{
 			endSpace = procList[i].startIndex;
 
@@ -266,10 +276,33 @@ int firstFit(Process newProc, Process* procList)
 				newProc.startIndex = startSpace;
 				newProc.endIndex = startSpace + newProc.size;
 				insertInArray(newProc, procList, i);
+				hasFoundPlace++;
 				break;
 			}
 
 			startSpace = procList[i].endIndex;
+		}
+
+		// Check if the process did not find a place
+		if(hasFoundPlace == -1)
+		{
+			// TODO: Get the remaining memory after last process
+			unsigned long remainingMem = totalMemory - procList[length - 1].endIndex;
+			
+			if(newProc.size > remainingMem)
+			{
+				// There is no place for this process
+				return -1;
+			}
+			else
+			{
+				procList[length].processName = (char*)malloc(16 * sizeof(char));
+				strcpy(procList[length].processName, newProc.processName);
+				procList[length].size = newProc.size;
+
+				procList[length].startIndex = procList[length - 1].endIndex + 1;
+				procList[length].endIndex = procList[length].startIndex + procList[length].size;
+			}
 		}
 	}
 
@@ -280,7 +313,7 @@ int firstFit(Process newProc, Process* procList)
  * Best Fit Algorithm:
  * Find every memory hole and allocate to the smallest hole that is still big enough
  */
-int bestFit(Process newProc, Process* procList)
+int bestFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
 {
 	int biggestIndex = -1;
 	
@@ -290,7 +323,7 @@ int bestFit(Process newProc, Process* procList)
  * Worst Fit Algorithm:
  * Find every memory hole and allocate to the biggest hole that is big enough
  */
-int worstFit(Process newProc, Process* procList)
+int worstFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
 {
 
 }
@@ -299,7 +332,7 @@ int worstFit(Process newProc, Process* procList)
  * Next Fit Algorithm:
  * 
  */
-int nextFit(Process newProc, Process* procList)
+int nextFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
 {
 
 }
