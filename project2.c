@@ -22,6 +22,7 @@ typedef struct Proccess Process;
 // Function Prototypes
 char* readline(int fd);
 char** split(char* str, char split);
+int numFileLines(int fd);
 
 void insertInArray(Process addProc, Process* array, int index);
 void removeFromArray(Process* array, int index);
@@ -36,10 +37,9 @@ void nextFit(Process newProc, Process* procList);
 int main(int argc, char** argv)
 {
 	// Variables
-	int fd;
-
-	char* inCommand, scriptFilename;
-	unsigned long int totalMemory;
+	char* command;
+	unsigned long totalMemory;
+	char* scriptName;
 
 	Process* memory;
 	int procCount = 0;
@@ -52,9 +52,9 @@ int main(int argc, char** argv)
 	}
 
 	// Initialize variables
-	memcpy(inCommand, argv[1]);
-	memcpy(scriptFilename, argv[3]);
-	totalMemory = atoi(argv[2]);
+	command = argv[1];
+	totalMemory = strtoul(argv[2], NULL, 0);
+	scriptName = argv[3];
 
 	// TESTING
 	dprintf(STDERR, "Input command: %s\n", inCommand);
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
 
 	// Allocate size to the array
 	// NOTE: Array will be increased as more processes are added so it can just start with 1 element
-	memory = (Process*)malloc(1 * sizeof(Process));
+	memory = (Process*)malloc(128 * sizeof(Process));
 	
 	// Create the file descriptor of the file we are using
 	fd = open(scriptFilename, O_RDONLY, 0);
@@ -90,7 +90,7 @@ int main(int argc, char** argv)
 		processName = data[1];
 
 		if(arrLength == 3)
-			memAmount = atoi(data[2]);
+			memAmount = strtol(data[2]);
 
 		// Check what command was issued
 		if(strcmp(command, "REQUEST") == 0)
@@ -182,10 +182,21 @@ int main(int argc, char** argv)
 		else if(strcmp(command, "FIND") == 0)
 		{
 			// Locates the starting address and size allocated by the process name given
+			int isFound = 0;
 			for(int i = 0; i < procCount; i++)
 			{
-
+				if(strcmp(memory[i].processName, processName) == 0)
+				{
+					// Process has been found
+					dprintf(STDOUT, "(%s, %ld, %ld)\n", memory[i].processName, memory[i].size, memory[i].startIndex);
+					isFound++;
+				}
 			}
+			
+			// Check if the process couldnt be found
+			if(isFound == 0)
+				dprintf(STDOUT, "FAULT\n");
+
 		}
 		else
 		{
@@ -257,9 +268,27 @@ char** split(char* str, char split)
 	return stringArray;
 }
 
+/*
+ * Counts the number of lines in a file provided by the file descriptor (fd)
+ */
+int numFileLines(int fd)
+{
+	// Variables
+	int lineCount = 0;
+	char c;
+
+	while(read(fd, &c, 1) > 0)
+	{
+		if(c == '\n')
+			lineCount++;
+	}
+
+	return lineCount;
+}
 
 /*
  * Inserts a Process into a Process array and shifts all other processes
+ * TODO: Get rid of new arrays, pass in procCount
  */
 void insertInArray(Process addProc, Process* array, int index)
 {
@@ -290,7 +319,6 @@ void insertInArray(Process addProc, Process* array, int index)
 	}
 
 	// Adjust the pointer to the provided array
-	free(array);
 	array = newArr;
 
 	return;
@@ -346,16 +374,48 @@ void firstFit(Process newProc, Process* procList)
 		long startSpace = 0;
 		long endSpace;
 
+		// TODO: Need to check for end of list
 		for(int i = 0; i < procCount; i++)
 		{
 			endSpace = procList[i].startIndex;
 
 			if((endSpace - startSpace) >= newProc.size)
 			{
-				
+				newProc.startIndex = startSpace;
+				newProc.endIndex = startSpace + newProc.size;
+				insertInArray(newProc, procList, i);
+				break;
 			}
 
 			startSpace = procList[i].endIndex;
 		}
 	}
+}
+
+/*
+ * Best Fit Algorithm:
+ * Find every memory hole and allocate to the smallest hole that is still big enough
+ */
+void bestFit(Process newProc, Process* procList)
+{
+	int biggestIndex = -1;
+	
+}
+
+/*
+ * Worst Fit Algorithm:
+ * Find every memory hole and allocate to the biggest hole that is big enough
+ */
+void worstFit(Process newProc, Process* procList)
+{
+
+}
+
+/*
+ * Next Fit Algorithm:
+ * 
+ */
+void nextFit(Process newProc, Process* procList)
+{
+
 }
