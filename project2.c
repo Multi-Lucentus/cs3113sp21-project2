@@ -94,6 +94,7 @@ int main(int argc, char** argv)
 
 		if(strcmp(command, "REQUEST") == 0)
 		{
+			// Allocate memory for a process
 			// data[1] = process name, data[2] = num bytes
 			processName = data[1];
 			numBytes = strtoul(data[2], NULL, 0);
@@ -113,7 +114,7 @@ int main(int argc, char** argv)
 				
 				if(firstFit(newProc, memory, procCount, totalMemory) == 0)
 				{
-					dprintf(STDOUT, "ALLOCATED %s %lu\n", newProc.processName, newProc.startIndex);
+					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
 					procCount++;
 				}
 				else
@@ -122,7 +123,28 @@ int main(int argc, char** argv)
 		}
 		else if(strcmp(command, "RELEASE") == 0)
 		{
+			// Releases the memory held by a process
+			// Loop through the array to find the right process name
+			processName = data[1];
 
+			int hasBeenFound = -1;
+			for(int i = 0; i < procCount; i++)
+			{
+				if(strcmp(memory[i].processName, processName) == 0)
+				{
+					// The right process has been found, need to remove it
+					dprintf(STDOUT, "FREE %s %lu %lu\n", memory[i].processName, memory[i].size, memory[i].startIndex);
+					
+					removeFromArray(memory, i);
+					procCount--;
+
+					hasBeenFound++;
+				}
+			}
+
+			// Check to make sure the process has been found, if it hasnt print an error message
+			if(hasBeenFound == -1)
+				dprintf(STDOUT, "FAIL RELEASE %s\n", processName);
 		}
 		else if(strcmp(command, "LIST") == 0)
 		{
@@ -241,12 +263,14 @@ void removeFromArray(Process* array, int index)
  */
 int firstFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
 {
+	// TESTING
+	dprintf(STDERR, "FIRST FIT: %s %lu, Length: %d\n", newProc.processName, newProc.size, length);
+
 	// Check if this is the first process being added or not
 	if(length == 0)
 	{
 		// Just need to put the process at the start of the list
 		// Also need to make sure the process isn't bigger than the amount of memory
-		// TODO: Need to also get total memory
 		if(newProc.size > totalMemory)
 			return -1;
 		procList[0].processName = (char*)malloc(16 * sizeof(char));
@@ -255,7 +279,7 @@ int firstFit(Process newProc, Process* procList, int length, unsigned long total
 		
 		// Set the indices of the new process
 		procList[0].startIndex = 0;
-		procList[0].endIndex = procList[0].size;
+		procList[0].endIndex = procList[0].size - 1;
 
 		return 0;
 	}
@@ -265,7 +289,6 @@ int firstFit(Process newProc, Process* procList, int length, unsigned long total
 		long startSpace = 0;
 		long endSpace;
 
-		// TODO: Need to check for end of list
 		int hasFoundPlace = -1;
 		for(int i = 0; i < length; i++)
 		{
@@ -286,7 +309,7 @@ int firstFit(Process newProc, Process* procList, int length, unsigned long total
 		// Check if the process did not find a place
 		if(hasFoundPlace == -1)
 		{
-			// TODO: Get the remaining memory after last process
+			// Get the remaining memory after last process
 			unsigned long remainingMem = totalMemory - procList[length - 1].endIndex;
 			
 			if(newProc.size > remainingMem)
@@ -301,7 +324,7 @@ int firstFit(Process newProc, Process* procList, int length, unsigned long total
 				procList[length].size = newProc.size;
 
 				procList[length].startIndex = procList[length - 1].endIndex + 1;
-				procList[length].endIndex = procList[length].startIndex + procList[length].size;
+				procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
 			}
 		}
 	}
