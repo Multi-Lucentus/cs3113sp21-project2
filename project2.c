@@ -201,7 +201,19 @@ int main(int argc, char** argv)
 				// If there are no processes, the whole thing is available
 				if(procCount == 0)
 					dprintf(STDOUT, "(%lu, 0)\n", totalMemory);
-				
+				if(procCount == 1)
+				{
+					// Can just print out from after the process' end index
+					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size, memory[0].endIndex + 1);
+				}
+
+				// TODO: Check if full
+				unsigned long remainMem = totalMemory;
+				for(int i = 0; i < procCount; i++)
+					remainMem -= memory[i].size;
+				if(remainMem == 0)
+					dprintf(STDOUT, "FULL\n");
+
 				long startSpace = 0;
 				long endSpace;
 				for(int i = 0; i < procCount; i++)
@@ -211,14 +223,15 @@ int main(int argc, char** argv)
 					if((endSpace - startSpace) > 0)
 					{
 						// Print out the available memory location
-						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace) - 1, startSpace + 1);
+						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace), (startSpace + 1));
 					}
 
 					startSpace = memory[i].endIndex;
 				}
 
 				// Check for memory after processes
-				if(startSpace != (totalMemory - 1))
+				// TODO: Fix here and print out FULL when there is no memory left
+				if(startSpace != (totalMemory - 1) && procCount != 1)
 					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace, startSpace);
 			}		
 		}
@@ -288,14 +301,11 @@ void insertInArray(Process addProc, Process* array, int index, int length)
 {
 	// Increase the length of the array and then move all elements after where index is inserted
 	array[length + 1].processName = (char*)malloc(16 * sizeof(char));
-
+	
 	for(int i = length + 1; i > index; i--)
 	{
 		// Copy the element from the previous index
-		strcpy(array[i].processName, array[i - 1].processName);
-		array[i].size = array[i - 1].size;
-		array[i].startIndex = array[i - 1].startIndex;
-		array[i].endIndex = array[i - 1].endIndex;		
+		array[i] = array[i - 1];
 	}
 
 	strcpy(array[index].processName, addProc.processName);
@@ -421,16 +431,22 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 
 	// Loop through array to find smallest memory hole that is big enough for the new process
 	int smallestIndex = -1;
-	long smallestSize = 0;
+	unsigned long smallestSize = totalMemory;
 
 	long startSpace = 0;
 	long endSpace;
-	for(int i = 0;  i < length; i++)
+	for(int i = 0; i < length; i++)
 	{
 		endSpace = procList[i].startIndex;
 
 		if((endSpace - startSpace) >= newProc.size && (endSpace - startSpace) < smallestSize)
+		{
 			smallestIndex = i;
+			
+			// Set the indices of the new process
+			newProc.startIndex = procList[i - 1].endIndex + 1;
+			newProc.endIndex = newProc.startIndex + newProc.size - 1;
+		}
 	}
 	
 	// If an index was never found, return -1
@@ -535,8 +551,8 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 	strcpy(procList[index].processName, newProc.processName);
 	procList[index].size = newProc.size;
 
-	// TODO: Determine location of nextPtr
-
+	// TODO: Determine location of nextPtr - find the next open hole
+	
 	(*nextPtr)++;
 
 	return 0;
