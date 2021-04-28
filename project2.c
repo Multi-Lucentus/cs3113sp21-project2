@@ -22,13 +22,13 @@ typedef struct Process Process;
 // Function Prototypes
 char** split(char* string, char split);
 
-void insertInArray(Process addProc, Process* array, int index);
-void removeFromArray(Process* array, int index);
+void insertInArray(Process addProc, Process* array, int index, int length);
+void removeFromArray(Process* array, int index, int length);
 
 int firstFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
 int bestFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
 int worstFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
-int nextFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
+int nextFit(Process newProc, Process* procList, Process* nextPtr, int length, unsigned long totalMemory);
 
 
 // Main Function
@@ -107,10 +107,7 @@ int main(int argc, char** argv)
 
 			// Check what algorithm is being used from the command-line
 			if(strcmp(inCommand, "FIRSTFIT") == 0)
-			{
-				// TESTING
-				dprintf(STDERR, "REQUEST FIRSTFIT\n");
-				
+			{	
 				if(firstFit(newProc, memory, procCount, totalMemory) == 0)
 				{
 					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
@@ -121,9 +118,6 @@ int main(int argc, char** argv)
 			}
 			else if(strcmp(inCommand, "BESTFIT") == 0)
 			{
-				// TESTING
-				dprintf(STDERR, "REQUEST BESTFIT\n");	
-				
 				if(bestFit(newProc, memory, procCount, totalMemory) == 0)
 				{
 					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
@@ -134,11 +128,25 @@ int main(int argc, char** argv)
 			}
 			else if(strcmp(inCommand, "WORSTFIT") == 0)
 			{
-
+				if(worstFit(newProc, memory, procCount, totalMemory) == 0)
+				{
+					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
+					procCount++;
+				}
+				else
+					dprintf(STDOUT, "FAIL REQUEST %s %lu\n", newProc.processName, newProc.size);
 			}
 			else if(strcmp(inCommand, "NEXTFIT") == 0)
 			{
+				Process* nextPtr;
 
+				if(nextFit(newProc, memory, nextPtr, procCount, totalMemory) == 0)
+				{
+					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
+					procCount++;
+				}
+				else
+					dprintf(STDOUT, "FAIL REQUEST %s %lu\n", newProc.processName, newProc.size);
 			}
 		}
 		else if(strcmp(command, "RELEASE") == 0)
@@ -155,7 +163,7 @@ int main(int argc, char** argv)
 					// The right process has been found, need to remove it
 					dprintf(STDOUT, "FREE %s %lu %lu\n", memory[i].processName, memory[i].size, memory[i].startIndex);
 					
-					removeFromArray(memory, i);
+					removeFromArray(memory, i, procCount);
 					procCount--;
 
 					hasBeenFound++;
@@ -221,10 +229,10 @@ int main(int argc, char** argv)
 			int hasFound = -1;
 			for(int i = 0; i < procCount; i++)
 			{
-				if(strcmp(processName, procList[i].processName) == 0)
+				if(strcmp(processName, memory[i].processName) == 0)
 				{
 					// Print info about the process
-					dprintf(STDOUT, "(%s, %lu, %lu)\n", procList[i].processName, procList[i].size, procList[i].startIndex);
+					dprintf(STDOUT, "(%s, %lu, %lu)\n", memory[i].processName, memory[i].size, memory[i].startIndex);
 					hasFound++;
 				}
 			}
@@ -273,18 +281,15 @@ char** split(char* string, char split)
 
 /*
  * Inserts a Process into a Process array and shifts all other processes
- * TODO: Get rid of new arrays, pass in procCount
  */
-void insertInArray(Process addProc, Process* array, int index)
+void insertInArray(Process addProc, Process* array, int index, int length)
 {
-	int arrLength = sizeof(array) / sizeof(array[0]);
-
 	// Create a new array to copy the elements into
-	Process* newArr = (Process*)malloc((arrLength + 1) * sizeof(Process));
+	Process* newArr = (Process*)malloc(128 * sizeof(Process));
 
 	// Copy the array
 	Process tempProc;
-	for(int i = 0; i < arrLength; i++)
+	for(int i = 0; i < length; i++)
 	{
 		if(i < index)
 		{
@@ -312,14 +317,12 @@ void insertInArray(Process addProc, Process* array, int index)
 /*
  * Removes an element from the given array
  */
-void removeFromArray(Process* array, int index)
+void removeFromArray(Process* array, int index, int length)
 {
-	int arrLength = sizeof(array) / sizeof(array[0]);
-
-	Process* newArr = (Process*)malloc((arrLength - 1) * sizeof(Process));
+	Process* newArr = (Process*)malloc(128 * sizeof(Process));
 
 	// Copy all array elements except for the indicated index
-	for(int i = 0; i < arrLength; i++)
+	for(int i = 0; i < length; i++)
 	{
 		if(i < index)
 			newArr[i] = array[i];
@@ -377,7 +380,7 @@ int firstFit(Process newProc, Process* procList, int length, unsigned long total
 			{
 				newProc.startIndex = startSpace;
 				newProc.endIndex = startSpace + newProc.size;
-				insertInArray(newProc, procList, i);
+				insertInArray(newProc, procList, i, length);
 				hasFoundPlace++;
 				break;
 			}
@@ -449,7 +452,6 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 	}
 	
 	// If an index was never found, return -1
-	// TODO: Also check for end of array
 	if(smallestIndex == -1)
 	{
 		// Check if the end of the array has enough size
@@ -467,11 +469,11 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 			return 0;
 		}
 		else
-			return -1
+			return -1;
 	}
 	
 	// Insert into the array at smallestIndex
-	insertInArray(newProc, procList, smallestIndex);
+	insertInArray(newProc, procList, smallestIndex, length);
 
 	return 0;
 }
@@ -487,15 +489,59 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 	{
 		if(newProc.size > totalMemory)
 			return -1;
-		procList[0].processName = (char*)
+		procList[0].processName = (char*)malloc(16 * sizeof(char));
+		strcpy(procList[0].processName, newProc.processName);
+		procList[0].size = newProc.size;
+
+		// Set indices
+		procList[0].startIndex = 0;
+		procList[0].endIndex = procList[0].size - 1;
+
+		return 0;
 	}
+
+	// Loop through array to find the biggest memory hole for this process
+	int biggestIndex = -1;
+	long biggestSize = 0;
+
+	long startSpace = 0;
+	long endSpace;
+	for(int i = 0; i < length; i++)
+	{
+		endSpace = procList[i].startIndex;
+
+		if((endSpace - startSpace) >= newProc.size && (endSpace - startSpace) > biggestsize)
+			biggestIndex = i;
+	}
+
+	if(biggestIndex == -1)
+	{
+		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
+		{
+			// Add to end of list
+			procList[length].processName = (char*)malloc(16 * sizeof(char));
+			strcpy(procList[length].processName, newProc.processName);
+			procList[length].size = newProc.size;
+
+			// Set indices
+			procList[length].startIndex = procList[length - 1].endIndex + 1;
+			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
+		}
+		else
+			return -1;
+	}
+
+	// Insert into the array at biggest index
+	insertInArray(newProc, procList, smallestIndex);
+
+	return 0;
 }
 
 /*
  * Next Fit Algorithm:
  * Very similar to FirstFit, but we keep a next pointer to the next element 
  */
-int nextFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
+int nextFit(Process newProc, Process* procList, Process* nextPtr, int length, unsigned long totalMemory)
 {
-
+	return 0;
 }
