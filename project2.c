@@ -28,7 +28,7 @@ void removeFromArray(Process* array, int index, int length);
 int firstFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
 int bestFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
 int worstFit(Process newProc, Process* procList, int length, unsigned long totalMemory);
-int nextFit(Process newProc, Process* procList, Process* nextPtr, int length, unsigned long totalMemory);
+int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsigned long totalMemory);
 
 
 // Main Function
@@ -57,9 +57,9 @@ int main(int argc, char** argv)
 	scriptName = argv[3];
 
 	// TESTING
-	dprintf(STDERR, "Input command: %s\n", inCommand);
-	dprintf(STDERR, "Total memory: %ld\n", totalMemory);
-	dprintf(STDERR, "Script filename: %s\n", scriptName);
+	// dprintf(STDERR, "Input command: %s\n", inCommand);
+	// dprintf(STDERR, "Total memory: %ld\n", totalMemory);
+	// dprintf(STDERR, "Script filename: %s\n", scriptName);
 
 	// Allocate size to the array
 	memory = (Process*)malloc(128 * sizeof(Process));
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 		fgetc(fp);
 
 		// TESTING
-		dprintf(STDERR, "Line: %s\n", line);
+		// dprintf(STDERR, "Line: %s\n", line);
 		
 		// Split the string along spaces
 		data = split(line, ' ');
@@ -138,7 +138,8 @@ int main(int argc, char** argv)
 			}
 			else if(strcmp(inCommand, "NEXTFIT") == 0)
 			{
-				Process* nextPtr;
+				int* nextPtr = (int*)malloc(sizeof(int));
+				*nextPtr = 0;
 
 				if(nextFit(newProc, memory, nextPtr, procCount, totalMemory) == 0)
 				{
@@ -210,7 +211,7 @@ int main(int argc, char** argv)
 					if((endSpace - startSpace) > 0)
 					{
 						// Print out the available memory location
-						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace), startSpace);
+						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace) - 1, startSpace + 1);
 					}
 
 					startSpace = memory[i].endIndex;
@@ -281,35 +282,26 @@ char** split(char* string, char split)
 
 /*
  * Inserts a Process into a Process array and shifts all other processes
+ * TODO: Redo
  */
 void insertInArray(Process addProc, Process* array, int index, int length)
 {
-	// Create a new array to copy the elements into
-	Process* newArr = (Process*)malloc(128 * sizeof(Process));
+	// Increase the length of the array and then move all elements after where index is inserted
+	array[length + 1].processName = (char*)malloc(16 * sizeof(char));
 
-	// Copy the array
-	Process tempProc;
-	for(int i = 0; i < length; i++)
+	for(int i = length + 1; i > index; i--)
 	{
-		if(i < index)
-		{
-			// Elements will be the same
-			newArr[i] = array[i];
-		}
-		else if(i == index)
-		{
-			tempProc = array[i];
-			newArr[i] = addProc;
-		}
-		else
-		{
-			newArr[i] = tempProc;
-			tempProc = array[i];
-		}
+		// Copy the element from the previous index
+		strcpy(array[i].processName, array[i - 1].processName);
+		array[i].size = array[i - 1].size;
+		array[i].startIndex = array[i - 1].startIndex;
+		array[i].endIndex = array[i - 1].endIndex;		
 	}
 
-	// Adjust the pointer to the provided array
-	array = newArr;
+	strcpy(array[index].processName, addProc.processName);
+	array[index].size = addProc.size;
+	array[index].startIndex = addProc.startIndex;
+	array[index].endIndex = addProc.endIndex;
 
 	return;
 }
@@ -319,20 +311,13 @@ void insertInArray(Process addProc, Process* array, int index, int length)
  */
 void removeFromArray(Process* array, int index, int length)
 {
-	Process* newArr = (Process*)malloc(128 * sizeof(Process));
-
-	// Copy all array elements except for the indicated index
-	for(int i = 0; i < length; i++)
+	for(int i = index; i < length - 1; i++)
 	{
-		if(i < index)
-			newArr[i] = array[i];
-		else
-			newArr[i] = array[i + 1];
+		strcpy(array[i].processName, array[i + 1].processName);
+		array[i].size = array[i + 1].size;
+		array[i].startIndex = array[i + 1].startIndex;
+		array[i].endIndex = array[i + 1].endIndex;
 	}
-
-	// Make the provided array pointer point to the new array
-	free(array);
-	array = newArr;
 
 	return;
 }
@@ -345,9 +330,6 @@ void removeFromArray(Process* array, int index, int length)
  */
 int firstFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
 {
-	// TESTING
-	dprintf(STDERR, "FIRST FIT: %s %lu, Length: %d\n", newProc.processName, newProc.size, length);
-
 	// Check if this is the first process being added or not
 	if(length == 0)
 	{
@@ -510,7 +492,7 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 	{
 		endSpace = procList[i].startIndex;
 
-		if((endSpace - startSpace) >= newProc.size && (endSpace - startSpace) > biggestsize)
+		if((endSpace - startSpace) >= newProc.size && (endSpace - startSpace) > biggestSize)
 			biggestIndex = i;
 	}
 
@@ -532,7 +514,7 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 	}
 
 	// Insert into the array at biggest index
-	insertInArray(newProc, procList, smallestIndex);
+	insertInArray(newProc, procList, length, biggestIndex);
 
 	return 0;
 }
@@ -541,7 +523,21 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
  * Next Fit Algorithm:
  * Very similar to FirstFit, but we keep a next pointer to the next element 
  */
-int nextFit(Process newProc, Process* procList, Process* nextPtr, int length, unsigned long totalMemory)
+int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsigned long totalMemory)
 {
+	// Can just set it to index pointed to by nextPtr
+	int index = *nextPtr;
+	
+	// TODO: Check if location is big enough
+	
+
+	procList[index].processName = (char*)malloc(16 * sizeof(char));
+	strcpy(procList[index].processName, newProc.processName);
+	procList[index].size = newProc.size;
+
+	// TODO: Determine location of nextPtr
+
+	(*nextPtr)++;
+
 	return 0;
 }
