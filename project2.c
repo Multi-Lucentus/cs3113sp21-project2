@@ -120,8 +120,19 @@ int main(int argc, char** argv)
 			{
 				if(bestFit(newProc, memory, procCount, totalMemory) == 0)
 				{
-					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
+					// TODO: TESTING
+					dprintf(STDERR, "New Process Info: %s %lu\n", newProc.processName, newProc.size);
+
+					// Find where the element was inserted and then print out the necessary information (since the element won't always be inserted at the end of the array)
 					procCount++;
+					for(int i = 0; i < procCount; i++)
+						if(strcmp(newProc.processName, memory[i].processName) == 0)
+							dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
+					
+					// TODO: TESTING
+					for(int i = 0; i < procCount + 1; i++)
+						dprintf(STDERR, "[%d]: %s, ", i, memory[i].processName);
+					dprintf(STDERR, "\n");
 				}
 				else
 					dprintf(STDOUT, "FAIL REQUEST %s %lu\n", newProc.processName, newProc.size);
@@ -207,7 +218,7 @@ int main(int argc, char** argv)
 					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size, memory[0].endIndex + 1);
 				}
 
-				// TODO: Check if full
+				// Check if full
 				unsigned long remainMem = totalMemory;
 				for(int i = 0; i < procCount; i++)
 					remainMem -= memory[i].size;
@@ -220,7 +231,7 @@ int main(int argc, char** argv)
 				{
 					endSpace = memory[i].startIndex;
 
-					if((endSpace - startSpace) > 0)
+					if((endSpace - startSpace) > 1)
 					{
 						// Print out the available memory location
 						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace), (startSpace + 1));
@@ -230,9 +241,9 @@ int main(int argc, char** argv)
 				}
 
 				// Check for memory after processes
-				// TODO: Fix here and print out FULL when there is no memory left
+				// TODO Fix the calculation here
 				if(startSpace != (totalMemory - 1) && procCount != 1)
-					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace, startSpace);
+					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace - 1, startSpace + 1);
 			}		
 		}
 		else if(strcmp(command, "FIND") == 0)
@@ -299,6 +310,8 @@ char** split(char* string, char split)
  */
 void insertInArray(Process addProc, Process* array, int index, int length)
 {
+	dprintf(STDERR, "Trying to insert\n");
+
 	// Increase the length of the array and then move all elements after where index is inserted
 	array[length + 1].processName = (char*)malloc(16 * sizeof(char));
 	
@@ -433,8 +446,8 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 	int smallestIndex = -1;
 	unsigned long smallestSize = totalMemory;
 
-	long startSpace = 0;
-	long endSpace;
+	unsigned long startSpace = 0;
+	unsigned long endSpace;
 	for(int i = 0; i < length; i++)
 	{
 		endSpace = procList[i].startIndex;
@@ -442,11 +455,15 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		if((endSpace - startSpace) >= newProc.size && (endSpace - startSpace) < smallestSize)
 		{
 			smallestIndex = i;
-			
+
 			// Set the indices of the new process
 			newProc.startIndex = procList[i - 1].endIndex + 1;
 			newProc.endIndex = newProc.startIndex + newProc.size - 1;
+			break;
 		}
+
+		// Set startspace to the end of this process
+		startSpace = procList[i].endIndex;
 	}
 	
 	// If an index was never found, return -1
