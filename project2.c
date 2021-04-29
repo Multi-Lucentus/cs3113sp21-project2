@@ -212,12 +212,10 @@ int main(int argc, char** argv)
 					if((endSpace - startSpace) > 1)
 					{
 						// Found an open memory spot, print out the location
-						// TODO: May have to add a newline char or add a -1 to first parameter
 						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace - 1), (startSpace + 1));
 					}
 
-					if(i == (procCount - 1))
-						dprintf(STDOUT, "\n");
+					// TODO: May have to add in a newline
 
 					startSpace = memory[i].endIndex;
 				}
@@ -283,8 +281,7 @@ char** split(char* string, char split)
 }
 
 /*
- * Inserts a Process into a Process array and shifts all other processes
- * TODO: 
+ * Inserts a Process into a Process array and shifts all other processes 
  */
 void insertInArray(Process addProc, Process* array, int index, int length)
 {
@@ -294,7 +291,10 @@ void insertInArray(Process addProc, Process* array, int index, int length)
 	for(int i = length + 1; i > index; i--)
 	{
 		// Copy the element from the previous index
-		array[i] = array[i - 1];
+		strcpy(array[i].processName, array[i - 1].processName);
+		array[i].size = array[i - 1].size;
+		array[i].startIndex = array[i - 1].startIndex;
+		array[i].endIndex = array[i - 1].endIndex;
 	}
 
 	strcpy(array[index].processName, addProc.processName);
@@ -566,7 +566,7 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 {
 	int index = *nextPtr;
 
-	// TODO: Determine next pointer first
+	// Determine next pointer first
 	int foundIndex = -1;
 	
 	unsigned long startSpace = procList[index - 1].endIndex;
