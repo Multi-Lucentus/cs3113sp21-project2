@@ -180,7 +180,7 @@ int main(int argc, char** argv)
 
 				for(int i = 0; i < procCount; i++)
 				{
-					dprintf(STDOUT, "(%s, %lu, %lu)", memory[i].processName, memory[i].size, memory[i].startIndex);
+					dprintf(STDOUT, "(%s, %lu, %lu) ", memory[i].processName, memory[i].size, memory[i].startIndex);
 					if(i == (procCount - 1))
 						dprintf(STDOUT, "\n");
 				}
@@ -212,7 +212,7 @@ int main(int argc, char** argv)
 					if((endSpace - startSpace) > 1)
 					{
 						// Found an open memory spot, print out the location
-						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace - 1), (startSpace + 1));
+						dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), (startSpace + 1));
 					}
 
 					// TODO: May have to add in a newline
