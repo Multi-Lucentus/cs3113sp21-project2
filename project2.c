@@ -56,11 +56,6 @@ int main(int argc, char** argv)
 	totalMemory = strtoul(argv[2], NULL, 0);
 	scriptName = argv[3];
 
-	// TESTING
-	// dprintf(STDERR, "Input command: %s\n", inCommand);
-	// dprintf(STDERR, "Total memory: %ld\n", totalMemory);
-	// dprintf(STDERR, "Script filename: %s\n", scriptName);
-
 	// Allocate size to the array
 	memory = (Process*)malloc(128 * sizeof(Process));
 	
@@ -70,6 +65,9 @@ int main(int argc, char** argv)
 	char* line = (char*)malloc(64 * sizeof(char));
 	char** data;
 
+	int* nextPtr = (int*)malloc(1 * sizeof(int));
+	(*nextPtr) = 0;
+
 	char* command;
 	char* processName;
 	unsigned long numBytes;
@@ -78,39 +76,36 @@ int main(int argc, char** argv)
 		// Use fgetc to move past \n
 		fgetc(fp);
 
-		// TESTING
-		// dprintf(STDERR, "Line: %s\n", line);
-		
 		// Split the string along spaces
 		data = split(line, ' ');
-
-		int length = 0;
-		while(data[length] != NULL)
-			length++;
-
+		
 		// Decide what action to perform based off of data[0]
 		// NOTE: If data[0] == #, then that line is a comment and we can ignore
 		command = data[0];
 
 		if(strcmp(command, "REQUEST") == 0)
 		{
-			// Allocate memory for a process
-			// data[1] = process name, data[2] = num bytes
+			// Need to allocate memory for a process
+			// Format: REQUEST ProcessName NumberofBytes
 			processName = data[1];
 			numBytes = strtoul(data[2], NULL, 0);
 
-			// Create a new process
+			// Create the new process to be added
 			Process newProc;
 			newProc.processName = (char*)malloc(16 * sizeof(char));
 			strcpy(newProc.processName, processName);
 			newProc.size = numBytes;
 
-			// Check what algorithm is being used from the command-line
+			// TODO: Testing
+			// dprintf(STDOUT, "New Process: %s - %lu bytes\n", newProc.processName, newProc.size);
+			
+			// Check what algorithm is being used
+			int index;
 			if(strcmp(inCommand, "FIRSTFIT") == 0)
-			{	
-				if(firstFit(newProc, memory, procCount, totalMemory) == 0)
+			{
+				if((index = firstFit(newProc, memory, procCount, totalMemory)) != -1)
 				{
-					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
+					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[index].processName, memory[index].startIndex);
 					procCount++;
 				}
 				else
@@ -118,30 +113,19 @@ int main(int argc, char** argv)
 			}
 			else if(strcmp(inCommand, "BESTFIT") == 0)
 			{
-				if(bestFit(newProc, memory, procCount, totalMemory) == 0)
+				if((index = bestFit(newProc, memory, procCount, totalMemory)) != -1)
 				{
-					// TODO: TESTING
-					dprintf(STDERR, "New Process Info: %s %lu\n", newProc.processName, newProc.size);
-
-					// Find where the element was inserted and then print out the necessary information (since the element won't always be inserted at the end of the array)
+					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[index].processName, memory[index].startIndex);
 					procCount++;
-					for(int i = 0; i < procCount; i++)
-						if(strcmp(newProc.processName, memory[i].processName) == 0)
-							dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
-					
-					// TODO: TESTING
-					for(int i = 0; i < procCount + 1; i++)
-						dprintf(STDERR, "[%d]: %s, ", i, memory[i].processName);
-					dprintf(STDERR, "\n");
 				}
 				else
 					dprintf(STDOUT, "FAIL REQUEST %s %lu\n", newProc.processName, newProc.size);
 			}
 			else if(strcmp(inCommand, "WORSTFIT") == 0)
 			{
-				if(worstFit(newProc, memory, procCount, totalMemory) == 0)
+				if((index = worstFit(newProc, memory, procCount, totalMemory)) != -1)
 				{
-					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
+					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[index].processName, memory[index].startIndex);
 					procCount++;
 				}
 				else
@@ -149,12 +133,9 @@ int main(int argc, char** argv)
 			}
 			else if(strcmp(inCommand, "NEXTFIT") == 0)
 			{
-				int* nextPtr = (int*)malloc(sizeof(int));
-				*nextPtr = 0;
-
-				if(nextFit(newProc, memory, nextPtr, procCount, totalMemory) == 0)
+				if((index = nextFit(newProc, memory, nextPtr, procCount, totalMemory)) != -1)
 				{
-					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[procCount].processName, memory[procCount].startIndex);
+					dprintf(STDOUT, "ALLOCATED %s %lu\n", memory[index].processName, memory[index].startIndex);
 					procCount++;
 				}
 				else
@@ -172,9 +153,9 @@ int main(int argc, char** argv)
 			{
 				if(strcmp(memory[i].processName, processName) == 0)
 				{
-					// The right process has been found, need to remove it
+					// The right has been found, need to remove
 					dprintf(STDOUT, "FREE %s %lu %lu\n", memory[i].processName, memory[i].size, memory[i].startIndex);
-					
+
 					removeFromArray(memory, i, procCount);
 					procCount--;
 
@@ -182,18 +163,18 @@ int main(int argc, char** argv)
 				}
 			}
 
-			// Check to make sure the process has been found, if it hasnt print an error message
+			// If the process has not been found, print an error message
 			if(hasBeenFound == -1)
 				dprintf(STDOUT, "FAIL RELEASE %s\n", processName);
 		}
 		else if(strcmp(command, "LIST") == 0)
 		{
-			// Get the second part of the command
+			// The second part of the command will tell exactly what to do
 			char* command2 = data[1];
 
 			if(strcmp(command2, "ASSIGNED") == 0)
 			{
-				// Go through the list and print all assigned process memory
+				// Go through list and print all assigned process memory
 				if(procCount == 0)
 					dprintf(STDOUT, "NONE\n");
 
@@ -203,8 +184,6 @@ int main(int argc, char** argv)
 					if(i == (procCount - 1))
 						dprintf(STDOUT, "\n");
 				}
-				
-
 			}
 			else if(strcmp(command2, "AVAILABLE") == 0)
 			{
@@ -212,59 +191,42 @@ int main(int argc, char** argv)
 				// If there are no processes, the whole thing is available
 				if(procCount == 0)
 					dprintf(STDOUT, "(%lu, 0)\n", totalMemory);
+				// If there is just one process, can print out after process' end index
 				if(procCount == 1)
-				{
-					// Can just print out from after the process' end index
 					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size, memory[0].endIndex + 1);
-				}
 
-				// Check if full
+				// Next, need to check if memory is full
 				unsigned long remainMem = totalMemory;
 				for(int i = 0; i < procCount; i++)
 					remainMem -= memory[i].size;
 				if(remainMem == 0)
 					dprintf(STDOUT, "FULL\n");
 
-				long startSpace = 0;
-				long endSpace;
+				// Search for open memory spots
+				unsigned long startSpace = 0;
+				unsigned long endSpace;
 				for(int i = 0; i < procCount; i++)
 				{
 					endSpace = memory[i].startIndex;
 
 					if((endSpace - startSpace) > 1)
 					{
-						// Print out the available memory location
-						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace), (startSpace + 1));
+						// Found an open memory spot, print out the location
+						// TODO: May have to add a newline char or add a -1 to first parameter
+						dprintf(STDOUT, "(%lu, %lu)", (endSpace - startSpace - 1), (startSpace + 1));
 					}
 
 					startSpace = memory[i].endIndex;
 				}
 
 				// Check for memory after processes
-				// TODO Fix the calculation here
 				if(startSpace != (totalMemory - 1) && procCount != 1)
 					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace - 1, startSpace + 1);
-			}		
+			}
 		}
 		else if(strcmp(command, "FIND") == 0)
 		{
-			// Find a process
-			processName = data[1];
-			
-			int hasFound = -1;
-			for(int i = 0; i < procCount; i++)
-			{
-				if(strcmp(processName, memory[i].processName) == 0)
-				{
-					// Print info about the process
-					dprintf(STDOUT, "(%s, %lu, %lu)\n", memory[i].processName, memory[i].size, memory[i].startIndex);
-					hasFound++;
-				}
-			}
 
-			// If the process couldn't be found, print out FAULT
-			if(hasFound == -1)
-				dprintf(STDERR, "FAULT\n");
 		}
 	}
 
@@ -306,12 +268,9 @@ char** split(char* string, char split)
 
 /*
  * Inserts a Process into a Process array and shifts all other processes
- * TODO: Redo
  */
 void insertInArray(Process addProc, Process* array, int index, int length)
 {
-	dprintf(STDERR, "Trying to insert\n");
-
 	// Increase the length of the array and then move all elements after where index is inserted
 	array[length + 1].processName = (char*)malloc(16 * sizeof(char));
 	
@@ -345,90 +304,16 @@ void removeFromArray(Process* array, int index, int length)
 	return;
 }
 
-
 /*
  * First Fit Algorithm:
- * Allocate the process to the first hole that is big enough
- * Return 0 on success, or 1 on error
+ * Finds the first big enough hole in memory and inserts the process there
+ * Returns the index to where the process was inserted, or -1 on failure
  */
 int firstFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
 {
-	// Check if this is the first process being added or not
+	// If this is the first process, can manually add to beginning
 	if(length == 0)
 	{
-		// Just need to put the process at the start of the list
-		// Also need to make sure the process isn't bigger than the amount of memory
-		if(newProc.size > totalMemory)
-			return -1;
-		procList[0].processName = (char*)malloc(16 * sizeof(char));
-		strcpy(procList[0].processName, newProc.processName);
-		procList[0].size = newProc.size;
-		
-		// Set the indices of the new process
-		procList[0].startIndex = 0;
-		procList[0].endIndex = procList[0].size - 1;
-
-		return 0;
-	}
-	else
-	{
-		// Need to find the first big enough hole in the memory
-		long startSpace = 0;
-		long endSpace;
-
-		int hasFoundPlace = -1;
-		for(int i = 0; i < length; i++)
-		{
-			endSpace = procList[i].startIndex;
-
-			if((endSpace - startSpace) >= newProc.size)
-			{
-				newProc.startIndex = startSpace;
-				newProc.endIndex = startSpace + newProc.size;
-				insertInArray(newProc, procList, i, length);
-				hasFoundPlace++;
-				break;
-			}
-
-			startSpace = procList[i].endIndex;
-		}
-
-		// Check if the process did not find a place
-		if(hasFoundPlace == -1)
-		{
-			// Get the remaining memory after last process
-			unsigned long remainingMem = totalMemory - procList[length - 1].endIndex;
-			
-			if(newProc.size > remainingMem)
-			{
-				// There is no place for this process
-				return -1;
-			}
-			else
-			{
-				procList[length].processName = (char*)malloc(16 * sizeof(char));
-				strcpy(procList[length].processName, newProc.processName);
-				procList[length].size = newProc.size;
-
-				procList[length].startIndex = procList[length - 1].endIndex + 1;
-				procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
-			}
-		}
-	}
-
-	return 0;
-}
-
-/*
- * Best Fit Algorithm:
- * Find every memory hole and allocate to the smallest hole that is still big enough
- */
-int bestFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
-{
-	// If length is 0, can just add it to beginning
-	if(length == 0)
-	{
-		// Check to make sure that the process' size is not bigger than the total memory
 		if(newProc.size > totalMemory)
 			return -1;
 		procList[0].processName = (char*)malloc(16 * sizeof(char));
@@ -442,34 +327,116 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		return 0;
 	}
 
-	// Loop through array to find smallest memory hole that is big enough for the new process
-	int smallestIndex = -1;
-	unsigned long smallestSize = totalMemory;
+	// Loop through the array and find the next spot to be able to put the process
+	int index = -1;
 
 	unsigned long startSpace = 0;
 	unsigned long endSpace;
 	for(int i = 0; i < length; i++)
 	{
 		endSpace = procList[i].startIndex;
-
-		if((endSpace - startSpace) >= newProc.size && (endSpace - startSpace) < smallestSize)
+		
+		if((endSpace - startSpace) >= newProc.size)
 		{
-			smallestIndex = i;
-
-			// Set the indices of the new process
-			newProc.startIndex = procList[i - 1].endIndex + 1;
-			newProc.endIndex = newProc.startIndex + newProc.size - 1;
+			index = i;	
 			break;
 		}
 
-		// Set startspace to the end of this process
 		startSpace = procList[i].endIndex;
 	}
-	
-	// If an index was never found, return -1
-	if(smallestIndex == -1)
+
+	if(index != -1)
 	{
-		// Check if the end of the array has enough size
+		// Set indices of process
+		newProc.startIndex = procList[index - 1].endIndex + 1;
+		newProc.endIndex = newProc.startIndex + newProc.size - 1;
+
+		// Insert the process at the index
+		insertInArray(newProc, procList, index, length);
+		return index;
+	}
+	else
+	{
+		// If an index couldnt be found, check if process could be added to the end
+		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
+		{
+			procList[length].processName = (char*)malloc(16 * sizeof(char));
+			strcpy(procList[length].processName, newProc.processName);
+			procList[length].size = newProc.size;
+
+			// Set indices of process
+			procList[length].startIndex = procList[length - 1].endIndex + 1;
+			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
+
+			return length;
+		}
+		else
+			return -1;
+	}
+}
+
+/*
+ * Best Fit Algorithm:
+ * Find every memory hole and allocate the process to the smallest hole that is still big enough
+ * Returns the index to which the process was allocated or -1 if failed 
+ */
+int bestFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
+{
+	// If this is the first process to be added, can just manually add it to the beginning
+	if(length == 0)
+	{
+		// Check to make sure process' size is not bigger than total amount of memory
+		if(newProc.size > totalMemory)
+			return -1;
+		procList[0].processName = (char*)malloc(16 * sizeof(char));
+		strcpy(procList[0].processName, newProc.processName);
+		procList[0].size = newProc.size;
+
+		// Set the indices of the process
+		procList[0].startIndex = 0;
+		procList[0].endIndex = procList[0].size - 1;
+
+		return 0;
+	}
+
+	// Loop through the array to find the smallest memory hole that is big enough for the new process
+	int smallestIndex = -1;
+	unsigned long smallestSize = totalMemory;
+
+	unsigned long startSpace = 0;
+	unsigned long endSpace;
+	unsigned long testSpace;
+	for(int i = 0; i < length; i++)
+	{
+		endSpace = procList[i].startIndex;
+		
+		testSpace = endSpace - startSpace;
+		
+		// If this space is bigger than the needed size for the process and smaller than the previous smallest size, we have found the correct spot
+		if(testSpace >= newProc.size && testSpace < smallestSize)
+		{
+			smallestIndex = i;
+			smallestSize = testSpace;
+		}
+
+		startSpace = procList[i].endIndex;
+	}
+
+	// Allocate the process to the found smallest hole
+	if(smallestIndex != -1)
+	{
+		// TODO: May also need to compare with end of memory here
+		newProc.startIndex = procList[smallestIndex - 1].endIndex + 1;
+		newProc.endIndex = newProc.startIndex + newProc.size - 1;
+
+		insertInArray(newProc, procList, smallestIndex, length);
+
+		return smallestIndex;
+	}
+	else
+	{
+		// In this case, an index was never found
+		// Can check to see if the process can be inserted after the last process, but if not, return -1
 		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
 		{
 			// Set the new process to the end of the list
@@ -481,22 +448,18 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 			procList[length].startIndex = procList[length - 1].endIndex + 1;
 			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
 
-			return 0;
+			return length;
 		}
 		else
 			return -1;
 	}
-	
-	// Insert into the array at smallestIndex
-	insertInArray(newProc, procList, smallestIndex, length);
-
-	return 0;
 }
 
 /*
  * Worst Fit Algorithm:
- * Find every memory hole and allocate to the biggest hole that is big enough
- * Very similar to bestFit, but looking for biggest hole instead of smalled
+ * Loops through all of the memory holes and inserts the process at the biggest memory hole
+ * Very similar to best fit algorithm, but we find the largest hole instead
+ * Returns the index of where the process was inserted or -1 on failure
  */
 int worstFit(Process newProc, Process* procList, int length, unsigned long totalMemory)
 {
@@ -515,62 +478,121 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 		return 0;
 	}
 
-	// Loop through array to find the biggest memory hole for this process
+	// Loop through the array to find the largest memory hole
 	int biggestIndex = -1;
-	long biggestSize = 0;
+	unsigned long biggestSize = 0;
 
-	long startSpace = 0;
-	long endSpace;
+	unsigned long startSpace = 0;
+	unsigned long endSpace;
+	unsigned long testSpace;
 	for(int i = 0; i < length; i++)
 	{
 		endSpace = procList[i].startIndex;
+		
+		testSpace = endSpace - startSpace;
 
-		if((endSpace - startSpace) >= newProc.size && (endSpace - startSpace) > biggestSize)
+		if(testSpace >= newProc.size && testSpace > biggestSize)
+		{
 			biggestIndex = i;
+			biggestSize = testSpace;
+		}
+
+		startSpace = procList[i].endIndex;
 	}
 
-	if(biggestIndex == -1)
+	if(biggestIndex != -1)
 	{
+		// Compare with the end of memory to see if that is larger
+		testSpace = totalMemory - procList[length - 1].endIndex;
+		if(biggestSize < testSpace && newProc.size >= testSpace)
+		{
+			biggestSize = testSpace;
+			biggestIndex = length - 1;
+		}
+
+		// Adjust the indices of the new process and then insert into the array
+		newProc.startIndex = procList[biggestIndex - 1].endIndex + 1;
+		newProc.endIndex = newProc.startIndex + newProc.size - 1;
+
+		insertInArray(newProc, procList, biggestIndex, length);
+
+		return biggestIndex;
+	}
+	else
+	{
+		// An index was never found in memory to insert
+		// Check to see if proc can be inserted at end, and if not return -1
 		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
 		{
-			// Add to end of list
+			// Set new process to end of list
 			procList[length].processName = (char*)malloc(16 * sizeof(char));
 			strcpy(procList[length].processName, newProc.processName);
 			procList[length].size = newProc.size;
 
-			// Set indices
+			// Set the indices
 			procList[length].startIndex = procList[length - 1].endIndex + 1;
 			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
+
+			return length;
 		}
 		else
 			return -1;
 	}
-
-	// Insert into the array at biggest index
-	insertInArray(newProc, procList, length, biggestIndex);
-
-	return 0;
 }
 
 /*
  * Next Fit Algorithm:
- * Very similar to FirstFit, but we keep a next pointer to the next element 
+ * Similar to first fit in the way that the algorithm finds the next spot to put a process
+ * But a pointer is kept to the next available spot
  */
 int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsigned long totalMemory)
 {
-	// Can just set it to index pointed to by nextPtr
 	int index = *nextPtr;
-	
-	// TODO: Check if location is big enough
-	
 
-	procList[index].processName = (char*)malloc(16 * sizeof(char));
-	strcpy(procList[index].processName, newProc.processName);
-	procList[index].size = newProc.size;
+	// TODO: Determine next pointer first
+	unsigned long startSpace = procList[index - 1].endIndex;
+	unsigned long endSpace;
 
-	// TODO: Determine location of nextPtr - find the next open hole
+
+
+	if(index != -1)
+	{
+		// Check to make sure the hole is big enough
+		
+
+		// Insert the process at the index that the next pointer indicates
+		newProc.startIndex = procList[index - 1].endIndex + 1;
+		newProc.endIndex = newProc.startIndex + newProc.size - 1;
+
+		insertInArray(newProc, procList, index, length);
+	}
+
+	//  Find the next spot to put the pointer
+	int foundIndex = -1;
 	
-	(*nextPtr)++;
+	unsigned long startSpace = procList[index].endIndex;
+	unsigned long endSpace;
+	for(int i = index + 1; i < length; i++)
+	{
+		endSpace = procList[i].startIndex;
 
-	return 0;
+		if((endSpace - startSpace) > 1)
+			foundIndex = i;
+	}
+
+	if(foundIndex == -1)
+	{
+		for(int i = 0; i < length; i++)
+		{
+	
+		}
+
+		// TODO: Check end of list too
+		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
+			foundIndex = length;
+	}
+
+	(*nextPtr) = foundIndex;
+
+	return index;
 }
