@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 	scriptName = argv[3];
 
 	// Allocate size to the array
-	memory = (Process*)malloc(128 * sizeof(Process));
+	memory = (Process*)malloc(2048 * sizeof(Process));
 	
 	// Open the file using a file pointer
 	fp = fopen(scriptName, "r");
