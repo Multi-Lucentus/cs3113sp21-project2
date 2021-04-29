@@ -1,2 +1,5 @@
 Brian W. Kernighan & Dennis M. Ritchie | The C Programming Language | Helped me reference the C programming language especially with the open and read system calls
-Parker Brandt | OS Project 1 | Used methods created in project 1 in this project (readline() and split())
+Parker Brandt(Self) | OS Project 1 | Used methods created in project 1 in this project (split())
+https://www.geeksforgeeks.org/c-program-count-number-lines-file/ | Used for help on how to count number of lines in a file
+https://www.tutorialspoint.com/c_standard_library/c_function_fscanf.htm | Helped me to understand fscanf() function and how to use it
+https://docs.microsoft.com/en-us/troubleshoot/cpp/fscanf-does-not-read-consecutive-line | Helped me to get past an error while using fscanf()
