@@ -203,7 +203,9 @@ int main(int argc, char** argv)
 				for(int i = 0; i < procCount; i++)
 					remainMem -= memory[i].size;
 				if(remainMem == 0)
-					dprintf(STDOUT, "FULL\n");
+					dprintf(STDOUT, "FULL");
+				
+				// TODO: Switch here to be an else statement
 
 				// Search for open memory spots
 				unsigned long startSpace = 0;
@@ -425,6 +427,9 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		procList[0].startIndex = 0;
 		procList[0].endIndex = procList[0].size - 1;
 
+		// TODO: Testing
+		dprintf(STDERR, "Inserted Process %s of size %lu at index 0\n", procList[0].processName, procList[0].size);
+
 		return 0;
 	}
 
@@ -454,11 +459,18 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 	// Allocate the process to the found smallest hole
 	if(smallestIndex != -1)
 	{
-		// TODO: May also need to compare with end of memory here
-		newProc.startIndex = procList[smallestIndex - 1].endIndex + 1;
+		// If it is being inserted at 0 index, need to adjust indices
+		if(smallestIndex == 0)
+			newProc.startIndex = 0;
+		else
+			newProc.startIndex = procList[smallestIndex - 1].endIndex + 1;
+		
 		newProc.endIndex = newProc.startIndex + newProc.size - 1;
 
 		insertInArray(newProc, procList, smallestIndex, length);
+
+		// TODO: Testing
+		dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
 
 		return smallestIndex;
 	}
@@ -477,10 +489,16 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 			procList[length].startIndex = procList[length - 1].endIndex + 1;
 			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
 
+			// TODO: Testing
+			dprintf(STDERR, "Inserted Process %s of size %lu at index %d\n", procList[length].processName, procList[length].size, length);
+
 			return length;
 		}
 		else
+		{
+			dprintf(STDERR, "Could not insert\n");
 			return -1;
+		}
 	}
 }
 
