@@ -224,10 +224,10 @@ int main(int argc, char** argv)
 							if((endSpace - startSpace) > 1)
 							{
 								// Found an open memory spot, print out the location
-								dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), (startSpace + 1));
+								dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), startSpace);
 							}
 
-							startSpace = memory[i].endIndex;
+							startSpace = memory[i].endIndex + 1;
 						}
 
 						// Check for memory after processes
@@ -440,7 +440,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		procList[0].endIndex = procList[0].size - 1;
 
 		// Testing
-		dprintf(STDERR, "Inserted Process %s of size %lu at index 0\n", procList[0].processName, procList[0].size);
+		// dprintf(STDERR, "Inserted Process %s of size %lu at index 0\n", procList[0].processName, procList[0].size);
 
 		return 0;
 	}
@@ -483,7 +483,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		insertInArray(newProc, procList, smallestIndex, length);
 
 		// Testing
-		dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
+		// dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
 
 		return smallestIndex;
 	}
@@ -503,13 +503,13 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
 
 			// Testing
-			dprintf(STDERR, "Inserted Process %s of size %lu at index %d\n", procList[length].processName, procList[length].size, length);
+			// dprintf(STDERR, "Inserted Process %s of size %lu at index %d\n", procList[length].processName, procList[length].size, length);
 
 			return length;
 		}
 		else
 		{
-			dprintf(STDERR, "Could not insert\n");
+			// dprintf(STDERR, "Could not insert\n");
 			return -1;
 		}
 	}
@@ -668,7 +668,11 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 	if(foundIndex != -1)
 	{
 		// Insert the process at this point, but adjust indices first
-		newProc.startIndex = procList[foundIndex - 1].endIndex + 1;
+		// Also need to check for if the foundIndex is 0 to avoid pointer errors
+		if(foundIndex == 0)
+			newProc.startIndex = 0;
+		else
+			newProc.startIndex = procList[foundIndex - 1].endIndex + 1;
 		newProc.endIndex = newProc.startIndex + newProc.size - 1;
 
 		insertInArray(newProc, procList, foundIndex, length);
