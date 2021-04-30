@@ -197,7 +197,11 @@ int main(int argc, char** argv)
 				else if(procCount == 1)
 				{
 					// If there is just one process, can print it out on its own
-					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size, memory[0].endIndex + 1);
+					// Make sure it doesnt take up all of memory
+					if(totalMemory - memory[0].size > 0)
+						dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size, memory[0].endIndex + 1);
+					else
+						dprintf(STDOUT, "FULL\n");
 				}
 				else
 				{
@@ -462,7 +466,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 			smallestSize = testSpace;
 		}
 
-		startSpace = procList[i].endIndex;
+		startSpace = procList[i].endIndex + 1;
 	}
 
 	// Allocate the process to the found smallest hole
