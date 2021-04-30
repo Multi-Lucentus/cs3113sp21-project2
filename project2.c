@@ -62,6 +62,8 @@ int main(int argc, char** argv)
 	
 	// Open the file using a file pointer
 	fp = fopen(scriptName, "r");
+	if(fp == NULL)
+		exit(EXIT_FAILURE);
 
 	char* line = (char*)malloc(256 * sizeof(char));
 	char** data;
@@ -222,6 +224,8 @@ int main(int argc, char** argv)
 				// Check for memory after processes
 				if(startSpace != (totalMemory - 1) && procCount != 1)
 					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace - 1, startSpace + 1);
+				else
+					dprintf(STDOUT, "\n");
 			}
 		}
 		else if(strcmp(command, "FIND") == 0)
@@ -263,7 +267,7 @@ char** split(char* string, char split)
 		if(string[i] == split)
 			splitCount++;
 
-	char** stringArray = (char**)malloc((splitCount + 1) * sizeof(char*));
+	char** stringArray = (char**)malloc(128 * sizeof(char*));
 	for(int i = 0; i < (splitCount + 1); i++)
 		stringArray[i] = (char*)malloc(64 * sizeof(char));
 
@@ -285,6 +289,9 @@ char** split(char* string, char split)
  */
 void insertInArray(Process addProc, Process* array, int index, int length)
 {
+	if(index < 0 || index > length - 1)
+		return;
+
 	// Increase the length of the array and then move all elements after where index is inserted
 	array[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 	
@@ -310,6 +317,9 @@ void insertInArray(Process addProc, Process* array, int index, int length)
  */
 void removeFromArray(Process* array, int index, int length)
 {
+	if(length == 0)
+		return;
+
 	for(int i = index; i < length - 1; i++)
 	{
 		strcpy(array[i].processName, array[i + 1].processName);
@@ -317,6 +327,8 @@ void removeFromArray(Process* array, int index, int length)
 		array[i].startIndex = array[i + 1].startIndex;
 		array[i].endIndex = array[i + 1].endIndex;
 	}
+
+	free(array[length - 1].processName);
 
 	return;
 }
