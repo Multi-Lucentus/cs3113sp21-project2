@@ -202,32 +202,33 @@ int main(int argc, char** argv)
 				unsigned long remainMem = totalMemory;
 				for(int i = 0; i < procCount; i++)
 					remainMem -= memory[i].size;
-				if(remainMem == 0)
-					dprintf(STDOUT, "FULL");
 				
-				// TODO: Switch here to be an else statement
-
-				// Search for open memory spots
-				unsigned long startSpace = 0;
-				unsigned long endSpace;
-				for(int i = 0; i < procCount; i++)
-				{
-					endSpace = memory[i].startIndex;
-
-					if((endSpace - startSpace) > 1)
+				if(remainMem == 0)
+					dprintf(STDOUT, "FULL\n");
+				else
+				{	
+					// Search for open memory spots
+					unsigned long startSpace = 0;
+					unsigned long endSpace;
+					for(int i = 0; i < procCount; i++)
 					{
-						// Found an open memory spot, print out the location
-						dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), (startSpace + 1));
+						endSpace = memory[i].startIndex;
+	
+						if((endSpace - startSpace) > 1)
+						{
+							// Found an open memory spot, print out the location
+							dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), (startSpace + 1));
+						}
+
+						startSpace = memory[i].endIndex;
 					}
 
-					startSpace = memory[i].endIndex;
+					// Check for memory after processes
+					if(startSpace != (totalMemory - 1) && procCount != 1)
+						dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace - 1, startSpace + 1);
+					else
+						dprintf(STDOUT, "\n");
 				}
-
-				// Check for memory after processes
-				if(startSpace != (totalMemory - 1) && procCount != 1)
-					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace - 1, startSpace + 1);
-				else
-					dprintf(STDOUT, "\n");
 			}
 		}
 		else if(strcmp(command, "FIND") == 0)
