@@ -194,40 +194,44 @@ int main(int argc, char** argv)
 				// If there are no processes, the whole thing is available
 				if(procCount == 0)
 					dprintf(STDOUT, "(%lu, 0)\n", totalMemory);
-				// If there is just one process, can print out after process' end index
-				if(procCount == 1)
+				else if(procCount == 1)
+				{
+					// If there is just one process, can print it out on its own
 					dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size, memory[0].endIndex + 1);
-
-				// Next, need to check if memory is full
-				unsigned long remainMem = totalMemory;
-				for(int i = 0; i < procCount; i++)
-					remainMem -= memory[i].size;
-				
-				if(remainMem == 0)
-					dprintf(STDOUT, "FULL\n");
+				}
 				else
-				{	
-					// Search for open memory spots
-					unsigned long startSpace = 0;
-					unsigned long endSpace;
+				{
+					// Next, need to check if memory is full
+					unsigned long remainMem = totalMemory;
 					for(int i = 0; i < procCount; i++)
-					{
-						endSpace = memory[i].startIndex;
-	
-						if((endSpace - startSpace) > 1)
+						remainMem -= memory[i].size;
+				
+					if(remainMem == 0)
+						dprintf(STDOUT, "FULL\n");
+					else
+					{	
+						// Search for open memory spots
+						unsigned long startSpace = 0;
+						unsigned long endSpace;
+						for(int i = 0; i < procCount; i++)
 						{
-							// Found an open memory spot, print out the location
-							dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), (startSpace + 1));
+							endSpace = memory[i].startIndex;
+	
+							if((endSpace - startSpace) > 1)
+							{
+								// Found an open memory spot, print out the location
+								dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), (startSpace + 1));
+							}
+
+							startSpace = memory[i].endIndex;
 						}
 
-						startSpace = memory[i].endIndex;
+						// Check for memory after processes
+						if(startSpace != (totalMemory - 1) && procCount != 1)
+							dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace - 1, startSpace + 1);
+						else
+							dprintf(STDOUT, "\n");
 					}
-
-					// Check for memory after processes
-					if(startSpace != (totalMemory - 1) && procCount != 1)
-						dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace - 1, startSpace + 1);
-					else
-						dprintf(STDOUT, "\n");
 				}
 			}
 		}
@@ -428,8 +432,8 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		procList[0].startIndex = 0;
 		procList[0].endIndex = procList[0].size - 1;
 
-		// TODO: Testing
-		dprintf(STDERR, "Inserted Process %s of size %lu at index 0\n", procList[0].processName, procList[0].size);
+		// Testing
+		// dprintf(STDERR, "Inserted Process %s of size %lu at index 0\n", procList[0].processName, procList[0].size);
 
 		return 0;
 	}
@@ -470,8 +474,8 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 
 		insertInArray(newProc, procList, smallestIndex, length);
 
-		// TODO: Testing
-		dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
+		// Testing
+		// dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
 
 		return smallestIndex;
 	}
@@ -490,14 +494,14 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 			procList[length].startIndex = procList[length - 1].endIndex + 1;
 			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
 
-			// TODO: Testing
-			dprintf(STDERR, "Inserted Process %s of size %lu at index %d\n", procList[length].processName, procList[length].size, length);
+			// Testing
+			// dprintf(STDERR, "Inserted Process %s of size %lu at index %d\n", procList[length].processName, procList[length].size, length);
 
 			return length;
 		}
 		else
 		{
-			dprintf(STDERR, "Could not insert\n");
+			// dprintf(STDERR, "Could not insert\n");
 			return -1;
 		}
 	}
