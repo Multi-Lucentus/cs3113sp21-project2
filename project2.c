@@ -475,7 +475,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		insertInArray(newProc, procList, smallestIndex, length);
 
 		// Testing
-		// dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
+		//dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
 
 		return smallestIndex;
 	}
@@ -483,7 +483,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 	{
 		// In this case, an index was never found
 		// Can check to see if the process can be inserted after the last process, but if not, return -1
-		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
+		if((totalMemory - procList[length - 1].endIndex) > newProc.size)
 		{
 			// Set the new process to the end of the list
 			procList[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
