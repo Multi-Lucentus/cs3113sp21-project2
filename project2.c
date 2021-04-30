@@ -8,6 +8,7 @@
 #define STDOUT 1
 #define STDERR 2
 
+#define NAME_SIZE 24
 
 // Structs
 struct Process
@@ -62,10 +63,10 @@ int main(int argc, char** argv)
 	// Open the file using a file pointer
 	fp = fopen(scriptName, "r");
 
-	char* line = (char*)malloc(64 * sizeof(char));
+	char* line = (char*)malloc(256 * sizeof(char));
 	char** data;
 
-	int* nextPtr = (int*)malloc(1 * sizeof(int));
+	int* nextPtr = (int*)malloc(16 * sizeof(int));
 	(*nextPtr) = 0;
 
 	char* command;
@@ -92,7 +93,7 @@ int main(int argc, char** argv)
 
 			// Create the new process to be added
 			Process newProc;
-			newProc.processName = (char*)malloc(16 * sizeof(char));
+			newProc.processName = (char*)malloc(NAME_SIZE * sizeof(char));
 			strcpy(newProc.processName, processName);
 			newProc.size = numBytes;
 
@@ -215,8 +216,6 @@ int main(int argc, char** argv)
 						dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), (startSpace + 1));
 					}
 
-					// TODO: May have to add in a newline
-
 					startSpace = memory[i].endIndex;
 				}
 
@@ -235,7 +234,8 @@ int main(int argc, char** argv)
 			{
 				if(strcmp(processName, memory[i].processName) == 0)
 				{
-					dprintf(STDOUT, "(%s, %lu, %lu)\n", memory[i].processName, memory[i].size, memory[i].startIndex);;
+					dprintf(STDOUT, "(%s, %lu, %lu)\n", memory[i].processName, memory[i].size, memory[i].startIndex);
+					hasBeenFound++;
 				}
 			}
 
@@ -286,7 +286,7 @@ char** split(char* string, char split)
 void insertInArray(Process addProc, Process* array, int index, int length)
 {
 	// Increase the length of the array and then move all elements after where index is inserted
-	array[length].processName = (char*)malloc(16 * sizeof(char));
+	array[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 	
 	for(int i = length; i > index; i--)
 	{
@@ -333,7 +333,7 @@ int firstFit(Process newProc, Process* procList, int length, unsigned long total
 	{
 		if(newProc.size > totalMemory)
 			return -1;
-		procList[0].processName = (char*)malloc(16 * sizeof(char));
+		procList[0].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 		strcpy(procList[0].processName, newProc.processName);
 		procList[0].size = newProc.size;
 
@@ -377,7 +377,7 @@ int firstFit(Process newProc, Process* procList, int length, unsigned long total
 		// If an index couldnt be found, check if process could be added to the end
 		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
 		{
-			procList[length].processName = (char*)malloc(16 * sizeof(char));
+			procList[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 			strcpy(procList[length].processName, newProc.processName);
 			procList[length].size = newProc.size;
 
@@ -405,7 +405,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		// Check to make sure process' size is not bigger than total amount of memory
 		if(newProc.size > totalMemory)
 			return -1;
-		procList[0].processName = (char*)malloc(16 * sizeof(char));
+		procList[0].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 		strcpy(procList[0].processName, newProc.processName);
 		procList[0].size = newProc.size;
 
@@ -457,7 +457,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
 		{
 			// Set the new process to the end of the list
-			procList[length].processName = (char*)malloc(16 * sizeof(char));
+			procList[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 			strcpy(procList[length].processName, newProc.processName);
 			procList[length].size = newProc.size;
 
@@ -484,7 +484,7 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 	{
 		if(newProc.size > totalMemory)
 			return -1;
-		procList[0].processName = (char*)malloc(16 * sizeof(char));
+		procList[0].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 		strcpy(procList[0].processName, newProc.processName);
 		procList[0].size = newProc.size;
 
@@ -542,7 +542,7 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
 		{
 			// Set new process to end of list
-			procList[length].processName = (char*)malloc(16 * sizeof(char));
+			procList[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 			strcpy(procList[length].processName, newProc.processName);
 			procList[length].size = newProc.size;
 
@@ -577,7 +577,7 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 		}
 		
 		// Set the process to the first in the array
-		procList[0].processName = (char*)malloc(16 * sizeof(char));
+		procList[0].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 		strcpy(procList[0].processName, newProc.processName);
 		procList[0].size = newProc.size;
 
@@ -634,7 +634,7 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
 		{
 			// Insert the process at the end
-			procList[length].processName = (char*)malloc(16 * sizeof(char));
+			procList[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 			strcpy(procList[length].processName, newProc.processName);
 			procList[length].size = newProc.size;
 
