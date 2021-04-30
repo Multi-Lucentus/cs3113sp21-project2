@@ -452,7 +452,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		testSpace = endSpace - startSpace;
 		
 		// If this space is bigger than the needed size for the process and smaller than the previous smallest size, we have found the correct spot
-		if(testSpace >= newProc.size && testSpace < smallestSize)
+		if(testSpace > newProc.size && testSpace < smallestSize)
 		{
 			smallestIndex = i;
 			smallestSize = testSpace;
@@ -555,7 +555,6 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 	if(biggestIndex != -1)
 	{
 		// Compare with the end of memory to see if that is larger
-		testSpace = totalMemory - procList[length - 1].endIndex;
 		if(biggestSize < testSpace && newProc.size >= testSpace)
 		{
 			biggestSize = testSpace;
@@ -563,7 +562,10 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 		}
 
 		// Adjust the indices of the new process and then insert into the array
-		newProc.startIndex = procList[biggestIndex - 1].endIndex + 1;
+		if(biggestIndex == 0)
+			newProc.startIndex = 0;
+		else
+			newProc.startIndex = procList[biggestIndex - 1].endIndex + 1;
 		newProc.endIndex = newProc.startIndex + newProc.size - 1;
 
 		insertInArray(newProc, procList, biggestIndex, length);
