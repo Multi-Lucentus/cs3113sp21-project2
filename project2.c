@@ -206,7 +206,7 @@ int main(int argc, char** argv)
 					for(int i = 0; i < procCount; i++)
 						remainMem -= memory[i].size;
 				
-					if(remainMem == 0)
+					if(remainMem <= 0)
 						dprintf(STDOUT, "FULL\n");
 					else
 					{	
@@ -378,13 +378,16 @@ int firstFit(Process newProc, Process* procList, int length, unsigned long total
 			break;
 		}
 
-		startSpace = procList[i].endIndex;
+		startSpace = procList[i].endIndex + 1;
 	}
 
 	if(index != -1)
 	{
 		// Set indices of process
-		newProc.startIndex = procList[index - 1].endIndex + 1;
+		if(index == 0)
+			newProc.startIndex = 0;
+		else
+			newProc.startIndex = procList[index - 1].endIndex + 1;
 		newProc.endIndex = newProc.startIndex + newProc.size - 1;
 
 		// Insert the process at the index
@@ -433,7 +436,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		procList[0].endIndex = procList[0].size - 1;
 
 		// Testing
-		// dprintf(STDERR, "Inserted Process %s of size %lu at index 0\n", procList[0].processName, procList[0].size);
+		dprintf(STDERR, "Inserted Process %s of size %lu at index 0\n", procList[0].processName, procList[0].size);
 
 		return 0;
 	}
@@ -447,12 +450,13 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 	unsigned long testSpace;
 	for(int i = 0; i < length; i++)
 	{
+		// TODO: Figure out a way to make processes of size 1 fit
 		endSpace = procList[i].startIndex;
 		
 		testSpace = endSpace - startSpace;
 		
 		// If this space is bigger than the needed size for the process and smaller than the previous smallest size, we have found the correct spot
-		if(testSpace > newProc.size && testSpace < smallestSize)
+		if(testSpace >= newProc.size && testSpace < smallestSize)
 		{
 			smallestIndex = i;
 			smallestSize = testSpace;
@@ -475,7 +479,7 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 		insertInArray(newProc, procList, smallestIndex, length);
 
 		// Testing
-		//dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
+		dprintf(STDERR, "Inserted Process %s of size %lu at indexx %d\n", procList[smallestIndex].processName, procList[smallestIndex].size, smallestIndex);
 
 		return smallestIndex;
 	}
@@ -495,13 +499,13 @@ int bestFit(Process newProc, Process* procList, int length, unsigned long totalM
 			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
 
 			// Testing
-			// dprintf(STDERR, "Inserted Process %s of size %lu at index %d\n", procList[length].processName, procList[length].size, length);
+			dprintf(STDERR, "Inserted Process %s of size %lu at index %d\n", procList[length].processName, procList[length].size, length);
 
 			return length;
 		}
 		else
 		{
-			// dprintf(STDERR, "Could not insert\n");
+			dprintf(STDERR, "Could not insert\n");
 			return -1;
 		}
 	}
@@ -549,7 +553,7 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
 			biggestSize = testSpace;
 		}
 
-		startSpace = procList[i].endIndex;
+		startSpace = procList[i].endIndex + 1;
 	}
 
 	if(biggestIndex != -1)
