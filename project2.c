@@ -226,26 +226,28 @@ int main(int argc, char** argv)
 					else
 					{	
 						// Search for open memory spots
-						unsigned long startSpace = 0;
-						unsigned long endSpace;
 						for(int i = 0; i < procCount; i++)
 						{
-							endSpace = memory[i].startIndex;
-	
-							if((endSpace - startSpace) > 1)
+							if(i == 0)
 							{
-								// Found an open memory spot, print out the location
-								if(startSpace != 0)
-									startSpace++;
-								dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace), startSpace);
+								if(memory[i].startIndex != 0)
+								{
+									dprintf(STDOUT, "(%lu, 0) ", memory[i].startIndex);
+								}
 							}
-
-							startSpace = memory[i].endIndex;
+							else
+							{
+								if(memory[i].startIndex != (memory[i - 1].endIndex + 1))
+								{
+									// Memory spot to look for
+									dprintf(STDOUT, "(%lu, %lu) ", memory[i].startIndex - memory[i - 1].endIndex - 1, memory[i - 1].endIndex + 1);
+								}
+							}	
 						}
 
 						// Check for memory after processes
-						if(startSpace != (totalMemory - 1) && procCount != 1)
-							dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - startSpace - 1, startSpace + 1);
+						if(memory[procCount - 1].endIndex != (totalMemory - 1) && procCount != 1)
+							dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[procCount - 1].endIndex - 1, memory[procCount - 1].endIndex + 1);
 						else
 							dprintf(STDOUT, "\n");
 					}
