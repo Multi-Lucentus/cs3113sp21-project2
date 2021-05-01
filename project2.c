@@ -193,7 +193,9 @@ int main(int argc, char** argv)
 				// Print out all available memory locations
 				// If there are no processes, the whole thing is available
 				if(procCount == 0)
+				{
 					dprintf(STDOUT, "(%lu, 0)\n", totalMemory);
+				}
 				else if(procCount == 1)
 				{
 					// If there is just one process, can print it out on its own
@@ -224,10 +226,12 @@ int main(int argc, char** argv)
 							if((endSpace - startSpace) > 1)
 							{
 								// Found an open memory spot, print out the location
-								dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace - 1), startSpace);
+								if(startSpace != 0)
+									startSpace++;
+								dprintf(STDOUT, "(%lu, %lu) ", (endSpace - startSpace), startSpace);
 							}
 
-							startSpace = memory[i].endIndex + 1;
+							startSpace = memory[i].endIndex;
 						}
 
 						// Check for memory after processes
@@ -300,7 +304,7 @@ char** split(char* string, char split)
  */
 void insertInArray(Process addProc, Process* array, int index, int length)
 {
-	if(index < 0 || index > length - 1)
+	if(index < 0 || index > length)
 		return;
 
 	// Increase the length of the array and then move all elements after where index is inserted
@@ -609,26 +613,24 @@ int worstFit(Process newProc, Process* procList, int length, unsigned long total
  */
 int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsigned long totalMemory)
 {
-	int index = *nextPtr;
+	int index = (*nextPtr);
 
-	// If index and length are both 0, can just add to first element
+	// dprintf(STDERR, "Next Pointer: %d\n", index);
+
+	// If length is 0, insert at beginning and increment nextPtr
 	if(length == 0)
 	{
-		// Check to make sure the size of the process doesnt exceed the whole array
-		if(newProc.size > totalMemory)
-		{
-			(*nextPtr) = -1;
-			return -1;
-		}
-		
-		// Set the process to the first in the array
+		// Set beginning of list to newProc
 		procList[0].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 		strcpy(procList[0].processName, newProc.processName);
 		procList[0].size = newProc.size;
 
-		// Set indices
+		// Set the indices of the process
 		procList[0].startIndex = 0;
-		procList[0].endIndex = procList[0].startIndex + procList[0].size - 1;
+		procList[0].endIndex = procList[0].size - 1;
+		
+		// TESTING
+		// dprintf(STDERR, "0 Inserted Process %s of size %lu at index 0\n", procList[0].processName, procList[0].size);
 
 		// Increment the next pointer
 		(*nextPtr)++;
@@ -636,39 +638,36 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 		return 0;
 	}
 
-	// Search through the array from index till end to see if there is a spot available
+	// Loop from index to end to see if there is a spot big enough
 	int foundIndex = -1;
-	
-	// Since the index could potentially be -1, have to check
+
 	unsigned long startSpace;
-	int i;
-	if(index == -1)
-	{
-		i = 0;
+
+	// Initialize startSpace depending on if index is 0 or not
+	if(index == 0)
 		startSpace = 0;
-	}
 	else
-	{
-		i = index;
-		startSpace = procList[index - 1].endIndex;
-	}
+		startSpace = procList[index - 1].endIndex + 1;
 
 	unsigned long endSpace;
 	unsigned long testSpace;
-	for(int j = i; j < length; j++)
-	{
-		endSpace = procList[j].startIndex;
 
+	for(int i = index; i < length; i++)
+	{
+		endSpace = procList[i].startIndex;
 		testSpace = endSpace - startSpace;
-		
+
 		if(testSpace >= newProc.size)
-			foundIndex = j;
+			foundIndex = i;
+
+		startSpace = procList[i].endIndex + 1;
 	}
 
+	// Check if a spot has been found
 	if(foundIndex != -1)
 	{
-		// Insert the process at this point, but adjust indices first
-		// Also need to check for if the foundIndex is 0 to avoid pointer errors
+		// Insert the process at this point
+		// Set the indices of the new process
 		if(foundIndex == 0)
 			newProc.startIndex = 0;
 		else
@@ -676,32 +675,80 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 		newProc.endIndex = newProc.startIndex + newProc.size - 1;
 
 		insertInArray(newProc, procList, foundIndex, length);
+
+		// TESTING
+		// dprintf(STDERR, "1 Inserted Process %s of size %lu at index %d\n", procList[foundIndex].processName, procList[foundIndex].size, foundIndex);
+
+		(*nextPtr) = foundIndex;
 	}
 	else
 	{
-		// Need to check if the process can just be put at the end
-		if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
+		// Loop again from index 0 to see if there is a place at the beginning
+		startSpace = 0;
+
+		for(int i = 0; i < index; i++)
 		{
-			// Insert the process at the end
-			procList[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
-			strcpy(procList[length].processName, newProc.processName);
-			procList[length].size = newProc.size;
+			endSpace = procList[i].startIndex;
+			testSpace = endSpace - startSpace;
 
-			// Adjust indices
-			procList[length].startIndex = procList[length - 1].endIndex + 1;
-			procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
+			if(testSpace >= newProc.size)
+				foundIndex = i;
 
-			foundIndex = length;
+			startSpace = procList[i].endIndex + 1;
+		}
+
+		if(foundIndex != -1)
+		{
+			// Found an index, insert here
+			if(foundIndex == 0)
+				newProc.startIndex = 0;
+			else
+				newProc.startIndex = procList[foundIndex - 1].endIndex + 1;
+			newProc.endIndex = newProc.startIndex + newProc.size - 1;
+
+			insertInArray(newProc, procList, foundIndex, length);
+
+			// TESTING
+			// dprintf(STDERR, "Array Length: %d\n", length);
+			// dprintf(STDERR, "2 Inserted Process %s of size %lu at index %d\n", procList[foundIndex].processName, procList[foundIndex].size, foundIndex);
+
+			(*nextPtr) = foundIndex;
 		}
 		else
 		{
-			// Process cannot be inserted
-			(*nextPtr) = -1;
-			return -1;
+			// Need to check if it can be put at the end now
+			if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
+			{
+				// Set to the end of the list
+				procList[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
+				strcpy(procList[length].processName, newProc.processName);
+				procList[length].size = newProc.size;
+
+				// Set the indices
+				procList[length].startIndex = procList[length - 1].endIndex + 1;
+				procList[length].endIndex = procList[length].startIndex + procList[length].size - 1;
+
+				foundIndex = length;
+				
+				// TESTING
+				// dprintf(STDERR, "3 Inserted Process %s of size %lu at index %d\n", procList[foundIndex].processName, procList[foundIndex].size, foundIndex);
+
+				// Determine what nextPtr should be - need to check if this is the end of memory or not
+				if(procList[length].endIndex == (totalMemory - 1))
+					(*nextPtr) = 0;
+				else
+					(*nextPtr) = length + 1;
+			}
+			else
+			{
+				// TESTING
+				// dprintf(STDERR, "4 Could not insert Process %s\n", newProc.processName);
+
+				// If it cannot, return -1, no need to change nextPtr
+				return -1;
+			}
 		}
 	}
-	
-	(*nextPtr) = foundIndex + 1;
 
 	return foundIndex;
 }
