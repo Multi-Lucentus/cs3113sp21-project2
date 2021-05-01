@@ -201,7 +201,16 @@ int main(int argc, char** argv)
 					// If there is just one process, can print it out on its own
 					// Make sure it doesnt take up all of memory
 					if(totalMemory - memory[0].size > 0)
-						dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size, memory[0].endIndex + 1);
+					{
+						if(memory[0].startIndex == 0)
+							dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size, memory[0].endIndex + 1);
+						else
+						{
+							// Need to print out the location before and after the one process
+							dprintf(STDOUT, "(%lu, 0) ", memory[0].startIndex);
+							dprintf(STDOUT, "(%lu, %lu)\n", totalMemory - memory[0].size - memory[0].startIndex, memory[0].endIndex + 1);
+						}
+					}
 					else
 						dprintf(STDOUT, "FULL\n");
 				}
@@ -615,7 +624,8 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 {
 	int index = (*nextPtr);
 
-	// dprintf(STDERR, "Next Pointer: %d\n", index);
+	if(newProc.size > totalMemory)
+		return -1;
 
 	// If length is 0, insert at beginning and increment nextPtr
 	if(length == 0)
@@ -717,8 +727,10 @@ int nextFit(Process newProc, Process* procList, int* nextPtr, int length, unsign
 		else
 		{
 			// Need to check if it can be put at the end now
-			if((totalMemory - procList[length - 1].endIndex) >= newProc.size)
+			if((totalMemory - procList[length - 1].endIndex - 1) >= newProc.size)
 			{
+				// In the edge cases where a process
+
 				// Set to the end of the list
 				procList[length].processName = (char*)malloc(NAME_SIZE * sizeof(char));
 				strcpy(procList[length].processName, newProc.processName);
